@@ -517,10 +517,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d7d8fd430daece488d78c3bc727a0ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.PlayerModule.PlayerLocomotion
-  _gravity: -9.8
-  _walkSpeed: 6
-  _runSpeed: 12
+  _gravity: -30
+  _walkSpeed: 4
+  _runSpeed: 7
   _controller: {fileID: 208961345}
+  _camera: {fileID: 330585545}
+  _maxLookAngle: 80
+  _minLookAngle: -80
+  _sensetivity: 1
+  _lookSmoothTime: 0.01
 --- !u!143 &208961345
 CharacterController:
   m_ObjectHideFlags: 0
@@ -560,7 +565,7 @@ GameObject:
   - component: {fileID: 330585547}
   m_Layer: 0
   m_Name: Main Camera
-  m_TagString: MainCamera
+  m_TagString: PlayerCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1113,8 +1118,8 @@ Transform:
   m_GameObject: {fileID: 901116811}
   serializedVersion: 2
   m_LocalRotation: {x: 0.27059805, y: 0.6532815, z: -0.27059805, w: 0.6532815}
-  m_LocalPosition: {x: -4.8, y: 1.45, z: 10.58}
-  m_LocalScale: {x: 5, y: 0.5, z: 5}
+  m_LocalPosition: {x: -6.48, y: 3.13, z: 18.52}
+  m_LocalScale: {x: 20, y: 0.5, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1783073810}

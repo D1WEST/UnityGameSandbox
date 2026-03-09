@@ -36,14 +36,23 @@ namespace Assets.Modules.PlayerModule
             _playerInputActions.PlayerMovementActions.Sprint.canceled -= _playerLocomotion.DoSprint;
         }
 
-        private void FixedUpdate()
+        private void Update()
         {
-            _playerLocomotion.MovementVector = _playerInputActions.PlayerMovementActions.Move.ReadValue<Vector2>().normalized;
+            _playerLocomotion.MovementVector = _playerInputActions.PlayerMovementActions.Move.ReadValue<Vector2>();
+            _playerLocomotion.LookVectorDelta = _playerInputActions.PlayerMovementActions.Look.ReadValue<Vector2>();
         }
 
         private void Start()
         {
-            gameObject.GetComponent<PlayerLocomotion>();
+            if (_playerLocomotion == null) 
+            { 
+                _playerLocomotion = GetComponent<PlayerLocomotion>();
+            }
+
+            if (_playerInputActions == null) 
+            { 
+                _playerInputActions = new PlayerInputActions();
+            }
         }
     }
 }
