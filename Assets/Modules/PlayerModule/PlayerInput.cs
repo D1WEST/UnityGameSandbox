@@ -20,6 +20,7 @@ namespace Assets.Modules.PlayerModule
             _playerInputActions.PlayerMovementActions.Enable();
             _playerInputActions.PlayerMovementActions.Jump.performed += _playerLocomotion.DoJump;
             _playerInputActions.PlayerMovementActions.Crouch.performed += _playerLocomotion.DoCrouch;
+            _playerInputActions.PlayerMovementActions.Crouch.canceled += _playerLocomotion.StopCrouch;
             _playerInputActions.PlayerMovementActions.Sprint.performed += _playerLocomotion.DoSprint;
             _playerInputActions.PlayerMovementActions.Sprint.canceled += _playerLocomotion.DoSprint;
         }
@@ -32,6 +33,7 @@ namespace Assets.Modules.PlayerModule
             _playerInputActions.PlayerMovementActions.Disable();
             _playerInputActions.PlayerMovementActions.Jump.performed -= _playerLocomotion.DoJump;
             _playerInputActions.PlayerMovementActions.Crouch.performed -= _playerLocomotion.DoCrouch;
+            _playerInputActions.PlayerMovementActions.Crouch.canceled -= _playerLocomotion.StopCrouch;
             _playerInputActions.PlayerMovementActions.Sprint.performed -= _playerLocomotion.DoSprint;
             _playerInputActions.PlayerMovementActions.Sprint.canceled -= _playerLocomotion.DoSprint;
         }

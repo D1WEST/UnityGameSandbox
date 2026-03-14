@@ -518,10 +518,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.PlayerModule.PlayerLocomotion
   _gravity: -30
+  _crouchSpeed: 2
   _walkSpeed: 4
   _runSpeed: 7
+  _jumpHeight: 1.5
   _controller: {fileID: 208961345}
   _camera: {fileID: 330585545}
+  _acceleration: 10
+  _deceleration: 10
+  _airControlMultiplier: 0.2
   _maxLookAngle: 80
   _minLookAngle: -80
   _sensetivity: 1
@@ -638,7 +643,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.592, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

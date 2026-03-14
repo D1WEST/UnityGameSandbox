@@ -22,6 +22,7 @@ namespace Assets.Modules.PlayerModule
 
         [Header("Movement")]
         [SerializeField] private float _gravity = -30f;
+        [SerializeField] private float _crouchSpeed = 2f;
         [SerializeField] private float _walkSpeed = 4f;
         [SerializeField] private float _runSpeed = 7f;
         [SerializeField] private float _jumpHeight = 1.5f;
@@ -37,12 +38,19 @@ namespace Assets.Modules.PlayerModule
         private float _selectedSpeed = 0f;
         private Vector3 _velocity;
         private Vector3 _currentHorizontalVelocity;
+        private bool isCrouching = false;
 
         [Header("Look")]
         [SerializeField] private float _maxLookAngle = 80f;
         [SerializeField] private float _minLookAngle = -80f;
         [SerializeField] private float _sensetivity = 1f;
         [SerializeField] private float _lookSmoothTime = 0.01f;
+
+        [Header("CameraPhysics")]
+        [SerializeField] private float _headSize = 0.25f;
+        [SerializeField] private float _bodySize = 1.75f;
+        [Range(0,1)]
+        [SerializeField] private float _crouchToStandRatio = 0.4f;
 
         private void Start()
         {
@@ -62,7 +70,7 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Jump action.
         /// </summary>
-        /// <param name="obj">Callback - do not use.</param>
+        /// <param name="obj">Callback.</param>
         public void DoJump(InputAction.CallbackContext obj)
         {
             if (_controller.isGrounded)
@@ -74,20 +82,38 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Crouch action.
         /// </summary>
-        /// <param name="obj">Callback - do not use.</param>
+        /// <param name="obj">Callback.</param>
         public void DoCrouch(InputAction.CallbackContext obj)
         {
-            Debug.Log("Crouched");
+            isCrouching = true;
+            _selectedSpeed = _crouchSpeed;
+            _camera.transform.localPosition = new Vector3(_camera.transform.localPosition.x, 
+                (-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio), _camera.transform.localPosition.z);
+        }
+
+        /// <summary>
+        /// Crouch stop action.
+        /// </summary>
+        /// <param name="obj">Callback.</param>
+        public void StopCrouch(InputAction.CallbackContext obj)
+        {
+            isCrouching = false;
+            _selectedSpeed = _walkSpeed;
+            _camera.transform.localPosition = new Vector3(_camera.transform.localPosition.x,
+                (-0.5f * _bodySize) + (_bodySize - (_headSize / 2)), _camera.transform.localPosition.z);
         }
 
         /// <summary>
         /// Sprint action.
         /// </summary>
-        /// <param name="obj">Callback - do not use.</param>
+        /// <param name="obj">Callback.</param>
         public void DoSprint(InputAction.CallbackContext obj)
         {
-            if (obj.performed) _selectedSpeed = _runSpeed;
-            if (obj.canceled) _selectedSpeed = _walkSpeed;
+            if (!isCrouching)
+            {
+                if (obj.performed) _selectedSpeed = _runSpeed;
+                else if (obj.canceled) _selectedSpeed = _walkSpeed;
+            }
         }
 
         /// <summary>
