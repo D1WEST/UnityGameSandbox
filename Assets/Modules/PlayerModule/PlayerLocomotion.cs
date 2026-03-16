@@ -75,10 +75,11 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Updates camera y position smoothly.
         /// </summary>
+        /// <param name="endingCrouch">Is crouch ending?</param>
         /// <param name="targetY">Target position.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns></returns>
-        private async UniTask SmoothCameraCrouch(float targetY, CancellationToken ct)
+        private async UniTask SmoothCameraCrouch(bool endingCrouch,float targetY, CancellationToken ct)
         {
             // »спользуем Transform.localPosition напр€мую дл€ скорости
             Transform camTransform = _camera.transform;
@@ -87,10 +88,28 @@ namespace Assets.Modules.PlayerModule
             // ÷икл работает, пока не достигнет цели или не будет отменен
             while (Mathf.Abs(camTransform.localPosition.y - targetY) > 0.001f)
             {
-                float newY = Mathf.SmoothDamp(camTransform.localPosition.y, targetY,
-                    ref currentVelocity, _crouchSmoothTime);
+                if (!endingCrouch)
+                {
+                    float newY = Mathf.SmoothDamp(camTransform.localPosition.y, targetY,
+                        ref currentVelocity, _crouchSmoothTime);
 
-                camTransform.localPosition = new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
+                    camTransform.localPosition =
+                        new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
+                }
+                else
+                {
+                    RaycastHit hit;
+                    Vector3 pointToActivate = transform.position;
+                    if (!Physics.SphereCast(pointToActivate, _headSize / 2f, Vector3.up, out hit, 1,
+                            LayerMask.GetMask("Environment")))
+                    {
+                        float newY = Mathf.SmoothDamp(camTransform.localPosition.y, targetY,
+                            ref currentVelocity, _crouchSmoothTime);
+
+                        camTransform.localPosition =
+                            new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
+                    }
+                }
 
                 // await UniTask.Yield делает паузу до следующего кадра, не блокиру€ поток
                 await UniTask.Yield(PlayerLoopTiming.Update, ct);
@@ -100,13 +119,14 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Triggers crouch camera animation.
         /// </summary>
+        /// <param name="endingCrouch">Is crouch ending?</param>
         /// <param name="targetY">Target camera position.</param>
-        private void TriggerCrouchAnimation(float targetY)
+        private void TriggerCrouchAnimation(bool endingCrouch, float targetY)
         {
             _crouchCTS?.Cancel();
             _crouchCTS = new CancellationTokenSource();
 
-            SmoothCameraCrouch(targetY, _crouchCTS.Token).Forget();
+            SmoothCameraCrouch(endingCrouch, targetY, _crouchCTS.Token).Forget();
         }
 
         /// <summary>
@@ -115,7 +135,7 @@ namespace Assets.Modules.PlayerModule
         /// <param name="obj">Callback.</param>
         public void DoJump(InputAction.CallbackContext obj)
         {
-            if (_controller.isGrounded)
+            if (_controller.isGrounded && !isCrouching)
             {
                 _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
             }
@@ -129,7 +149,7 @@ namespace Assets.Modules.PlayerModule
         {
             isCrouching = true;
             _selectedSpeed = _crouchSpeed;
-            TriggerCrouchAnimation((-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio));
+            TriggerCrouchAnimation(false,(-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio));
         }
 
         /// <summary>
@@ -140,7 +160,7 @@ namespace Assets.Modules.PlayerModule
         {
             isCrouching = false;
             _selectedSpeed = _walkSpeed;
-            TriggerCrouchAnimation((-0.5f * _bodySize) + (_bodySize - (_headSize / 2)));
+            TriggerCrouchAnimation(true, (-0.5f * _bodySize) + (_bodySize - (_headSize / 2)));
         }
 
         /// <summary>
