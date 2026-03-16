@@ -534,7 +534,7 @@ MonoBehaviour:
   _headSize: 0.25
   _bodySize: 1.75
   _crouchToStandRatio: 0.4
-  _crouchSmoothTime: 0.002
+  _crouchSmoothTime: 0.01
 --- !u!143 &208961345
 CharacterController:
   m_ObjectHideFlags: 0

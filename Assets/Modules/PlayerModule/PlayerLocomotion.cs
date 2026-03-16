@@ -4,6 +4,8 @@ using UnityEngine;
 
 namespace Assets.Modules.PlayerModule
 {
+    using Cysharp.Threading.Tasks;
+    using System.Threading;
     using UnityEngine;
     using UnityEngine.InputSystem;
 
@@ -15,10 +17,11 @@ namespace Assets.Modules.PlayerModule
         public Vector2 LookVectorDelta {get;set;} = Vector2.zero;
         private float _xRotation = 0f;
         private float _yRotation = 0f;
+        private CancellationTokenSource _crouchCTS;
 
-        private float VerticalMovement { get; set; }
         private Vector2 _currentMouseDelta;
         private Vector2 _currentMouseDeltaVelocity;
+
 
         [Header("Movement")]
         [SerializeField] private float _gravity = -30f;
@@ -52,6 +55,8 @@ namespace Assets.Modules.PlayerModule
         [Range(0,1)]
         [SerializeField] private float _crouchToStandRatio = 0.4f;
 
+        [SerializeField] private float _crouchSmoothTime = 0.05f;
+
         private void Start()
         {
             _selectedSpeed = _walkSpeed;
@@ -65,6 +70,43 @@ namespace Assets.Modules.PlayerModule
         {
             Look();
             Move();
+        }
+
+        /// <summary>
+        /// Updates camera y position smoothly.
+        /// </summary>
+        /// <param name="targetY">Target position.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns></returns>
+        private async UniTask SmoothCameraCrouch(float targetY, CancellationToken ct)
+        {
+            // »спользуем Transform.localPosition напр€мую дл€ скорости
+            Transform camTransform = _camera.transform;
+            float currentVelocity = 0f;
+
+            // ÷икл работает, пока не достигнет цели или не будет отменен
+            while (Mathf.Abs(camTransform.localPosition.y - targetY) > 0.001f)
+            {
+                float newY = Mathf.SmoothDamp(camTransform.localPosition.y, targetY,
+                    ref currentVelocity, _crouchSmoothTime);
+
+                camTransform.localPosition = new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
+
+                // await UniTask.Yield делает паузу до следующего кадра, не блокиру€ поток
+                await UniTask.Yield(PlayerLoopTiming.Update, ct);
+            }
+        }
+
+        /// <summary>
+        /// Triggers crouch camera animation.
+        /// </summary>
+        /// <param name="targetY">Target camera position.</param>
+        private void TriggerCrouchAnimation(float targetY)
+        {
+            _crouchCTS?.Cancel();
+            _crouchCTS = new CancellationTokenSource();
+
+            SmoothCameraCrouch(targetY, _crouchCTS.Token).Forget();
         }
 
         /// <summary>
@@ -87,8 +129,7 @@ namespace Assets.Modules.PlayerModule
         {
             isCrouching = true;
             _selectedSpeed = _crouchSpeed;
-            _camera.transform.localPosition = new Vector3(_camera.transform.localPosition.x, 
-                (-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio), _camera.transform.localPosition.z);
+            TriggerCrouchAnimation((-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio));
         }
 
         /// <summary>
@@ -99,8 +140,7 @@ namespace Assets.Modules.PlayerModule
         {
             isCrouching = false;
             _selectedSpeed = _walkSpeed;
-            _camera.transform.localPosition = new Vector3(_camera.transform.localPosition.x,
-                (-0.5f * _bodySize) + (_bodySize - (_headSize / 2)), _camera.transform.localPosition.z);
+            TriggerCrouchAnimation((-0.5f * _bodySize) + (_bodySize - (_headSize / 2)));
         }
 
         /// <summary>
