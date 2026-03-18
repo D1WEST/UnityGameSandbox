@@ -10,6 +10,7 @@ namespace Assets.Modules.PlayerModule
     using UnityEngine.InputSystem;
 
     [RequireComponent(typeof(CharacterController))]
+    [RequireComponent(typeof(PlayerAnimation))]
     public class PlayerLocomotion : MonoBehaviour
     {
         [Header("DoNotTouch")]
@@ -42,6 +43,7 @@ namespace Assets.Modules.PlayerModule
         private Vector3 _velocity;
         private Vector3 _currentHorizontalVelocity;
         private bool isCrouching = false;
+        private bool _isInDuckPosition = false;
 
         [Header("Look")]
         [SerializeField] private float _maxLookAngle = 80f;
@@ -57,11 +59,15 @@ namespace Assets.Modules.PlayerModule
 
         [SerializeField] private float _crouchSmoothTime = 0.05f;
 
+        [Header("Animation")] 
+        [SerializeField] private PlayerAnimation _playerAnimation;
+
         private void Start()
         {
             _selectedSpeed = _walkSpeed;
             if (_controller == null) _controller = GetComponent<CharacterController>();
             if (_camera == null) _camera = GetComponent<Camera>();
+            if(_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimation>();
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
@@ -95,6 +101,9 @@ namespace Assets.Modules.PlayerModule
 
                     camTransform.localPosition =
                         new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
+                    _isInDuckPosition = true;
+                    _controller.height = (_bodySize + _headSize) * _crouchToStandRatio;
+                    _controller.center = new Vector3(0, -0.5f* (_bodySize + _headSize) * _crouchToStandRatio,0);
                 }
                 else
                 {
@@ -108,6 +117,9 @@ namespace Assets.Modules.PlayerModule
 
                         camTransform.localPosition =
                             new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
+                        _isInDuckPosition = false;
+                        _controller.height = _bodySize + _headSize;
+                        _controller.center = Vector3.zero;
                     }
                 }
 
@@ -203,6 +215,7 @@ namespace Assets.Modules.PlayerModule
             _velocity.y += _gravity * Time.deltaTime;
             Vector3 finalVelocity = _currentHorizontalVelocity + new Vector3(0, _velocity.y, 0);
             _controller.Move(finalVelocity * Time.deltaTime);
+            _playerAnimation.UpdateAnimatorValues(MovementVector.x, MovementVector.y, _selectedSpeed == _runSpeed, _isInDuckPosition, _controller.isGrounded);
         }
 
         /// <summary>
