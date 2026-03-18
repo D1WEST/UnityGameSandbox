@@ -11,7 +11,6 @@ namespace Assets.Modules.PlayerModule
 
         private void Start()
         {
-            //_inputManager = GetComponent<InputManager>();
             _horizontal = Animator.StringToHash("Horizontal");
             _vertical = Animator.StringToHash("Vertical");
         }

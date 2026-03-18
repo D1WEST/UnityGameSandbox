@@ -120,6 +120,8 @@ namespace Assets.Modules.PlayerModule
                         _isInDuckPosition = false;
                         _controller.height = _bodySize + _headSize;
                         _controller.center = Vector3.zero;
+                        _selectedSpeed = _walkSpeed;
+                        isCrouching = false;
                     }
                 }
 
@@ -170,8 +172,6 @@ namespace Assets.Modules.PlayerModule
         /// <param name="obj">Callback.</param>
         public void StopCrouch(InputAction.CallbackContext obj)
         {
-            isCrouching = false;
-            _selectedSpeed = _walkSpeed;
             TriggerCrouchAnimation(true, (-0.5f * _bodySize) + (_bodySize - (_headSize / 2)));
         }
 
