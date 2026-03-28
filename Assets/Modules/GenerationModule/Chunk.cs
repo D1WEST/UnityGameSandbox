@@ -17,20 +17,18 @@
         private IGenerator generator;
         private IMeshBuilder meshBuilder;
 
-        public void Initialize(int3 size, int3 worldPos)
+        public void Initialize(int3 size, int3 worldPos, TerrainSettings settings)
         {
             meshFilter = GetComponent<MeshFilter>();
             meshCollider = GetComponent<MeshCollider>();
 
-            // Инжектим зависимости (D из SOLID)
             voxelData = new ChunkData(size);
-            generator = new TerrainGenerator();
+
+            // Передаем настройки в генератор!
+            generator = new TerrainGenerator(settings);
             meshBuilder = new VoxelMeshBuilder();
 
-            // 1. Генерируем плотность
             generator.Generate(voxelData, worldPos);
-
-            // 2. Строим меш
             UpdateMesh();
         }
 
@@ -38,11 +36,29 @@
         {
             Mesh newMesh = meshBuilder.BuildMesh(voxelData);
 
+            // 1. Простая проверка на существование меша
+            if (newMesh == null || newMesh.vertexCount < 3)
+            {
+                meshFilter.sharedMesh = null;
+                meshCollider.sharedMesh = null;
+                meshCollider.enabled = false;
+                return;
+            }
+
+            // 2. Сбрасываем коллайдер (стандартное правило Unity)
+            meshCollider.sharedMesh = null;
+
+            // 3. Назначаем меш визуальному фильтру
             meshFilter.sharedMesh = newMesh;
 
-            // Обновление коллайдера может быть тяжелым. 
-            // В Unity 2023+ есть Physics.BakeMesh для асинхронности.
+            // 4. ЗАПЕКАЕМ ФИЗИКУ (Новый способ)
+            // Мы просто вызываем его отдельной строкой. 
+            // Передаем сам объект меша и false (так как нам нужен не Convex, а обычный TriMesh)
+            Physics.BakeMesh(newMesh.GetInstanceID(), false);
+
+            // 5. Назначаем меш коллайдеру и включаем его
             meshCollider.sharedMesh = newMesh;
+            meshCollider.enabled = true;
         }
 
         // Доступ к данным для системы копания (из первой части)

@@ -1,5 +1,6 @@
 ﻿namespace Assets.Modules.GenerationModule
 {
+    using Assets.Modules.GenerationModule.Models;
     using System.Collections.Generic;
     using Unity.Mathematics;
     using UnityEngine;
@@ -8,7 +9,21 @@
     {
         public GameObject chunkPrefab;
         public int3 chunkSize = new int3(16, 16, 16);
-        public int renderDistance = 2;
+        public int renderDistance = 3;
+
+        // ВОТ НАШИ НАСТРОЙКИ С ИДЕАЛЬНЫМИ БАЗОВЫМИ ЗНАЧЕНИЯМИ
+        public TerrainSettings terrainSettings = new TerrainSettings
+        {
+            seed = 1337f,
+            biomeScale = 0.002f,
+            oceanHeight = 15f,
+            plainsHeight = 35f,
+            mountainHeight = 70f,
+            detailScale = 0.04f,
+            detailAmplitude = 4f, // Не делай больше 10, иначе опять будут рваные куски!
+            caveScale = 0.03f,
+            caveThickness = 0.04f
+        };
 
         private Dictionary<int3, Chunk> chunks = new Dictionary<int3, Chunk>();
 
@@ -32,7 +47,7 @@
                         chunkObj.name = $"Chunk {chunkPos}";
 
                         Chunk chunk = chunkObj.GetComponent<Chunk>();
-                        chunk.Initialize(chunkSize, chunkPos); 
+                        chunk.Initialize(chunkSize, chunkPos, terrainSettings);
 
                         chunks.Add(chunkPos, chunk);
                     }

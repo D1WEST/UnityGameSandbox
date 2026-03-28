@@ -8,7 +8,7 @@ public class PlayerInteraction : MonoBehaviour
     private WorldManager worldManager;
     private TerrainModifier terrainModifier;
 
-    public float brushRadius = 2f;
+    public float brushRadius = 1f;
     public float digPower = -1f; // Отрицательное = копать
     public float buildPower = 1f;  // Положительное = строить
     private Camera _camera;

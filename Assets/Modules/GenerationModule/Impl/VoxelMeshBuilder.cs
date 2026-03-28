@@ -11,15 +11,11 @@ namespace Assets.Modules.GenerationModule.Impl
 {
     public class VoxelMeshBuilder : IMeshBuilder
     {
-        public Mesh BuildMesh(IVoxelData data)
+        public Mesh BuildMesh(ChunkData chunkData)
         {
-            var chunkData = (ChunkData)data;
-
-            // Выделяем память под результаты (TempJob - автоматически очистится, если мы вызовем Dispose)
             var vertices = new NativeList<float3>(Allocator.TempJob);
             var triangles = new NativeList<int>(Allocator.TempJob);
 
-            // Настраиваем Job
             var job = new MarchingCubesJob
             {
                 Densities = chunkData.GetNativeArray(),
@@ -29,23 +25,22 @@ namespace Assets.Modules.GenerationModule.Impl
                 Triangles = triangles
             };
 
-            // Запускаем и ждем (в финальной игре здесь лучше сделать асинхронное ожидание)
             job.Schedule().Complete();
 
-            Mesh mesh = new Mesh();
-
-            // Проверяем, есть ли вообще геометрия (чтобы не создавать пустые меши)
-            if (vertices.Length > 0)
+            // ЕСЛИ ТРЕУГОЛЬНИКОВ НЕТ — возвращаем null, чтобы не ломать физику
+            if (triangles.Length == 0)
             {
-                // Быстрая конвертация NativeList в массивы Unity
-                mesh.SetVertices(vertices.AsArray().Reinterpret<Vector3>());
-                mesh.SetTriangles(triangles.AsArray().ToList(), 0);
-
-                // Unity сама посчитает нормали для освещения
-                mesh.RecalculateNormals();
+                vertices.Dispose();
+                triangles.Dispose();
+                return null;
             }
 
-            // КРИТИЧЕСКИ ВАЖНО: Очищаем память, иначе игра крашнется от утечки!
+            Mesh mesh = new Mesh();
+            mesh.SetVertices(vertices.AsArray().Reinterpret<Vector3>());
+            mesh.SetTriangles(triangles.AsArray().ToArray(), 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds(); // Обязательно считаем границы!
+
             vertices.Dispose();
             triangles.Dispose();
 

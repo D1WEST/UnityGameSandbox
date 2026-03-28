@@ -487,7 +487,7 @@ Transform:
   m_GameObject: {fileID: 208961341}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.373, z: 0}
+  m_LocalPosition: {x: 0, y: 60.38, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -611,7 +611,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c738fa8ca9fbbf64c8d1a98e8958611b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
-  brushRadius: 2
+  brushRadius: 1
   digPower: -1
   buildPower: 1
 --- !u!1 &230412266
@@ -2452,6 +2452,16 @@ MonoBehaviour:
     y: 16
     z: 16
   renderDistance: 2
+  terrainSettings:
+    seed: 1337
+    biomeScale: 0.001
+    oceanHeight: 15
+    plainsHeight: 35
+    mountainHeight: 70
+    detailScale: 0.04
+    detailAmplitude: 2
+    caveScale: 0.03
+    caveThickness: 0.02
 --- !u!4 &2109127857
 Transform:
   m_ObjectHideFlags: 0

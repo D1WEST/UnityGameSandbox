@@ -44,8 +44,8 @@ namespace Assets.Modules.GenerationModule.Burst
                 int3 cornerPos = pos + MarchingCubesTables.Corners[i];
                 cubeDensities[i] = Densities[GetIndex(cornerPos)];
 
-                // Если плотность < IsoLevel, значит бит равен 1
-                if (cubeDensities[i] < IsoLevel)
+                // ТЕПЕРЬ: если плотность БОЛЬШЕ IsoLevel (0), значит это земля (бит = 1)
+                if (cubeDensities[i] > IsoLevel)
                 {
                     cubeIndex |= (1 << i);
                 }
@@ -89,11 +89,17 @@ namespace Assets.Modules.GenerationModule.Burst
         // Линейная интерполяция для гладкости
         private float3 Interpolate(float3 p1, float val1, float3 p2, float val2)
         {
-            if (math.abs(IsoLevel - val1) < 0.00001f) return p1;
-            if (math.abs(IsoLevel - val2) < 0.00001f) return p2;
-            if (math.abs(val1 - val2) < 0.00001f) return p1;
+            // Если плотности почти одинаковые, не делим, а берем середину
+            if (math.abs(val1 - val2) < 0.00001f)
+            {
+                return (p1 + p2) * 0.5f;
+            }
 
-            float mu = (IsoLevel - val1) / (val2 - val1);
+            // Если одна из точек точно на уровне IsoLevel
+            if (math.abs(val1) < 0.00001f) return p1;
+            if (math.abs(val2) < 0.00001f) return p2;
+
+            float mu = (0f - val1) / (val2 - val1);
             return p1 + mu * (p2 - p1);
         }
 

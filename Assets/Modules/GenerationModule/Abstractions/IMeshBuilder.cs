@@ -1,5 +1,6 @@
 ﻿namespace Assets.Modules.GenerationModule.Abstractions
 {
+    using Assets.Modules.GenerationModule.Models;
     using UnityEngine;
 
     /// <summary>
@@ -7,6 +8,6 @@
     /// </summary>
     public interface IMeshBuilder
     {
-        Mesh BuildMesh(IVoxelData data);
+        Mesh BuildMesh(ChunkData chunkData);
     }
 }
