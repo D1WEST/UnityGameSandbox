@@ -13,22 +13,27 @@
         private ChunkData voxelData;
         private MeshFilter meshFilter;
         private MeshCollider meshCollider;
+        private WorldManager worldManager;
 
         private IGenerator generator;
         private IMeshBuilder meshBuilder;
 
-        public void Initialize(int3 size, int3 worldPos, TerrainSettings settings)
+        public void Initialize(int3 size, int3 worldPos, TerrainSettings settings, WorldManager manager)
         {
+            this.worldManager = manager; // Сохраняем ссылку на менеджер
             meshFilter = GetComponent<MeshFilter>();
             meshCollider = GetComponent<MeshCollider>();
-
             voxelData = new ChunkData(size);
 
-            // Передаем настройки в генератор!
-            generator = new TerrainGenerator(settings);
-            meshBuilder = new VoxelMeshBuilder();
+            // 1. Пытаемся загрузить из памяти
+            if (!worldManager.TryLoadChunkState(worldPos, voxelData.GetNativeArray()))
+            {
+                // 2. Если данных нет - генерируем шум
+                generator = new TerrainGenerator(settings);
+                generator.Generate(voxelData, worldPos);
+            }
 
-            generator.Generate(voxelData, worldPos);
+            meshBuilder = new VoxelMeshBuilder();
             UpdateMesh();
         }
 

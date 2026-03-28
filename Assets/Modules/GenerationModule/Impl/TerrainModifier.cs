@@ -24,7 +24,7 @@ namespace Assets.Modules.GenerationModule.Impl
             // СЕКРЕТ №1: Избавляемся от пустого клика. 
             // Сдвигаем точку немного ВНУТРЬ меша по нормали. 
             // Если строим (amount > 0), сдвигаем НАРУЖУ (прибавляем нормаль).
-            float offsetDir = amount < 0 ? -0.5f : 0.5f;
+            float offsetDir = amount < 0 ? -0.8f : 0.8f;
             Vector3 targetCenter = worldPoint + (normal * offsetDir);
 
             // Переводим в целочисленные глобальные воксельные координаты
@@ -73,34 +73,31 @@ namespace Assets.Modules.GenerationModule.Impl
 
         private void ModifyVoxelInAllOverlappingChunks(int3 globalPos, float amount, HashSet<Chunk> chunksToUpdate)
         {
-            // Проверяем сам чанк и его соседей (от -1 до 0 по осям), так как данные "захлестываются"
+            // Проходим соседей (радиус 1 вокруг точки), чтобы зацепить края 17х17х17
             for (int ox = -1; ox <= 0; ox++)
             {
                 for (int oy = -1; oy <= 0; oy++)
                 {
                     for (int oz = -1; oz <= 0; oz++)
                     {
-                        int3 checkPos = globalPos + new int3(ox * 16, oy * 16, oz * 16); // 16 - размер чанка
+                        int3 checkPos = globalPos + new int3(ox * 16, oy * 16, oz * 16);
                         Chunk chunk = worldManager.GetChunkAt(checkPos);
 
                         if (chunk != null)
                         {
-                            // Переводим глобальную позицию в локальную для этого чанка
                             int3 chunkWorldPos = worldManager.WorldToChunkPos(checkPos);
                             int3 localPos = globalPos - chunkWorldPos;
 
-                            // Проверяем, влазит ли точка в размер массива данных чанка (17x17x17)
                             ChunkData data = chunk.GetVoxelData();
                             if (localPos.x >= 0 && localPos.x < data.Size.x &&
                                 localPos.y >= 0 && localPos.y < data.Size.y &&
                                 localPos.z >= 0 && localPos.z < data.Size.z)
                             {
                                 float currentDensity = data.GetDensity(localPos);
-
-                                // Изменяем плотность (Marching Cubes реагирует на 0f)
-                                // Ограничиваем от -1 (пусто) до 1 (твердо)
                                 float newDensity = math.clamp(currentDensity + amount, -1f, 1f);
                                 data.SetDensity(localPos, newDensity);
+                                // !!! ВАЖНО: Сообщаем менеджеру, что данные чанка изменились
+                                worldManager.SaveChunkState(chunkWorldPos, data.GetNativeArray());
 
                                 chunksToUpdate.Add(chunk);
                             }

@@ -2447,11 +2447,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.GenerationModule.WorldManager
   chunkPrefab: {fileID: 662446737174614774, guid: a73db11a714ea9742a29ad8d2b0a159d, type: 3}
+  player: {fileID: 208961342}
   chunkSize:
     x: 16
     y: 16
     z: 16
-  renderDistance: 2
+  renderDistance: 6
+  chunksPerFrame: 2
   terrainSettings:
     seed: 1337
     biomeScale: 0.001
@@ -2461,7 +2463,7 @@ MonoBehaviour:
     detailScale: 0.04
     detailAmplitude: 2
     caveScale: 0.03
-    caveThickness: 0.02
+    caveThickness: 0.5
 --- !u!4 &2109127857
 Transform:
   m_ObjectHideFlags: 0
