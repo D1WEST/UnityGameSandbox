@@ -960,7 +960,7 @@ MonoBehaviour:
     biomeScale: 0.001
     oceanHeight: 15
     plainsHeight: 35
-    mountainHeight: 70
+    mountainHeight: 256
     detailScale: 0.1
     detailAmplitude: 1.2
     hubScale: 0.03
