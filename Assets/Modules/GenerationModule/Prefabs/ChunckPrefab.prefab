@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8131137762674502987}
   - component: {fileID: -5775961553169446822}
   - component: {fileID: 2604209686550728819}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: ChunckPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}

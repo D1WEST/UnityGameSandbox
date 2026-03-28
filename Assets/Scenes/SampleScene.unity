@@ -955,16 +955,18 @@ MonoBehaviour:
   chunksPerFrame: 2
   terrainSettings:
     seed: 1337
-    minChunkY: -10
-    maxChunkY: 5
+    minChunkY: -2
+    maxChunkY: 2
     biomeScale: 0.001
     oceanHeight: 15
     plainsHeight: 35
     mountainHeight: 70
     detailScale: 0.1
-    detailAmplitude: 3
-    caveScale: 0.01
-    caveThreshold: 0.015
+    detailAmplitude: 1.2
+    hubScale: 0.03
+    hubThreshold: 0.4
+    branchScale: 0.01
+    branchThreshold: 0.025
 --- !u!4 &2109127857
 Transform:
   m_ObjectHideFlags: 0

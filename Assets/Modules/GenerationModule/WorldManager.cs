@@ -20,17 +20,19 @@
         // ВОТ НАШИ НАСТРОЙКИ С ИДЕАЛЬНЫМИ БАЗОВЫМИ ЗНАЧЕНИЯМИ
         public TerrainSettings terrainSettings = new TerrainSettings
         {
-            minChunkY = -6,
-            maxChunkY = 4,
+            minChunkY = -2,
+            maxChunkY = 2,
             seed = 1337f,
             biomeScale = 0.001f,
             oceanHeight = 15f,
             plainsHeight = 35f,
             mountainHeight = 70f,
-            detailScale = 0.04f,
-            detailAmplitude = 2f, // Не делай больше 10, иначе опять будут рваные куски!
-            caveScale = 0.015f,
-            caveThreshold = 0.05f
+            detailScale = 0.1f,
+            detailAmplitude = 1.2f, // Не делай больше 10, иначе опять будут рваные куски!
+            hubScale = 0.03f,
+            hubThreshold = 0.4f,
+            branchScale = 0.01f,
+            branchThreshold = 0.025f
         };
 
         private Dictionary<int3, Chunk> chunks = new Dictionary<int3, Chunk>();
