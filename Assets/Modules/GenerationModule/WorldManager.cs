@@ -20,6 +20,8 @@
         // ВОТ НАШИ НАСТРОЙКИ С ИДЕАЛЬНЫМИ БАЗОВЫМИ ЗНАЧЕНИЯМИ
         public TerrainSettings terrainSettings = new TerrainSettings
         {
+            minChunkY = -6,
+            maxChunkY = 4,
             seed = 1337f,
             biomeScale = 0.001f,
             oceanHeight = 15f,
@@ -27,8 +29,8 @@
             mountainHeight = 70f,
             detailScale = 0.04f,
             detailAmplitude = 2f, // Не делай больше 10, иначе опять будут рваные куски!
-            caveScale = 0.03f,
-            caveThickness = 0.5f
+            caveScale = 0.015f,
+            caveThreshold = 0.05f
         };
 
         private Dictionary<int3, Chunk> chunks = new Dictionary<int3, Chunk>();
@@ -37,11 +39,6 @@
         private Dictionary<int3, Chunk> activeChunks = new Dictionary<int3, Chunk>();
         // Список позиций, которые нужно создать
         private List<int3> chunkCreationQueue = new List<int3>();
-
-        void Start()
-        {
-            GenerateWorld();
-        }
 
         void Update()
         {
@@ -99,24 +96,22 @@
             {
                 for (int z = -renderDistance; z <= renderDistance; z++)
                 {
-                    // ОГРАНИЧЕНИЕ: генерируем чанки только от Y=0 до Y=3 (например)
-                    // Это предотвратит бесконечную генерацию вниз.
-                    for (int y = 0; y < 4; y++)
+                    // Используем настройки из конфига!
+                    for (int y = terrainSettings.minChunkY; y <= terrainSettings.maxChunkY; y++)
                     {
                         int3 pos = new int3(
                             playerChunk.x + x * chunkSize.x,
-                            y * chunkSize.y, // Фиксированный Y уровень
+                            y * chunkSize.y,
                             playerChunk.z + z * chunkSize.z
                         );
 
-                        if (!activeChunks.ContainsKey(pos) && !chunkCreationQueue.Contains(pos))
+                        if (!activeChunks.ContainsKey(pos))
                         {
                             chunkCreationQueue.Add(pos);
                         }
                     }
                 }
             }
-
             // Сортируем очередь: сначала те, что ближе к игроку (для красоты)
             chunkCreationQueue.Sort((a, b) =>
                 (int)math.distancesq(playerChunk, a) - (int)math.distancesq(playerChunk, b));
@@ -173,11 +168,7 @@
         // Вспомогательные методы для копания (TerrainModifier)
         public Chunk GetChunkAt(int3 globalVoxelPos)
         {
-            int3 chunkPos = new int3(
-                Mathf.FloorToInt((float)globalVoxelPos.x / chunkSize.x) * chunkSize.x,
-                Mathf.FloorToInt((float)globalVoxelPos.y / chunkSize.y) * chunkSize.y,
-                Mathf.FloorToInt((float)globalVoxelPos.z / chunkSize.z) * chunkSize.z
-            );
+            int3 chunkPos = WorldToChunkPos(globalVoxelPos);
             return activeChunks.TryGetValue(chunkPos, out Chunk chunk) ? chunk : null;
         }
 

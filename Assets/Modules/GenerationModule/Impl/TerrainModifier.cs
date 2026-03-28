@@ -24,7 +24,7 @@ namespace Assets.Modules.GenerationModule.Impl
             // СЕКРЕТ №1: Избавляемся от пустого клика. 
             // Сдвигаем точку немного ВНУТРЬ меша по нормали. 
             // Если строим (amount > 0), сдвигаем НАРУЖУ (прибавляем нормаль).
-            float offsetDir = amount < 0 ? -0.8f : 0.8f;
+            float offsetDir = amount < 0 ? -0.5f : 0.5f;
             Vector3 targetCenter = worldPoint + (normal * offsetDir);
 
             // Переводим в целочисленные глобальные воксельные координаты
