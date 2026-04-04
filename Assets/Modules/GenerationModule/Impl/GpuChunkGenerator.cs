@@ -1,10 +1,11 @@
-﻿using UnityEngine;
-using UnityEngine.Rendering;
-using Unity.Mathematics;
-using System.Collections.Generic;
+﻿using Assets.Modules.GenerationModule.EditTools;
 using Assets.Modules.GenerationModule.Models;
 using Assets.Modules.GenerationModule.Models.WestMM;
 using Assets.Modules.GenerationModule.Static;
+using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Assets.Modules.GenerationModule.Impl
 {
@@ -49,7 +50,7 @@ namespace Assets.Modules.GenerationModule.Impl
             cornersBuffer.SetData(MarchingCubesTables.Corners);
         }
 
-        public void GenerateChunkAsync(int3 size, int3 worldPos, WorldProfile worldProfile, TerrainSettings globalSettings, System.Action<Mesh, float[]> onComplete)
+        public void GenerateChunkAsync(int3 size, int3 worldPos, VoxelGraphData graph, TerrainSettings globalSettings, System.Action<Mesh, float[]> onComplete)
         {
             // Размер +1 для сшивания швов между чанками
             int3 actualSize = size + new int3(1, 1, 1);
@@ -58,13 +59,12 @@ namespace Assets.Modules.GenerationModule.Impl
 
             // 1. Создаем буферы
             ComputeBuffer densitiesBuffer = new ComputeBuffer(numPoints, sizeof(float));
-            // Stride = 84 байта (размер нашей структуры Triangle)
+            // Stride = 84 байта (3x float3 позиции + 3x float4 цвета)
             ComputeBuffer trianglesBuffer = new ComputeBuffer(maxTriangles, 84, ComputeBufferType.Append);
             trianglesBuffer.SetCounterValue(0);
 
-            // Буфер биомов (размер структуры BiomeData в C# должен быть 48 байт)
-            ComputeBuffer biomeBuffer = new ComputeBuffer(worldProfile.biomes.Length, 48);
-            biomeBuffer.SetData(worldProfile.biomes);
+            // ВНИМАНИЕ: biomeBuffer УДАЛЕН. 
+            // Вся логика смешивания биомов теперь находится внутри сгенерированного HLSL кода шейдера.
 
             // 2. Установка параметров в шейдер
             computeShader.SetInts("ChunkSize", actualSize.x, actualSize.y, actualSize.z);
@@ -72,18 +72,16 @@ namespace Assets.Modules.GenerationModule.Impl
             computeShader.SetFloat("IsoLevel", 0f);
             computeShader.SetFloat("_Seed", globalSettings.seed);
 
-            // Параметры биомов
-            computeShader.SetBuffer(densityKernel, "Biomes", biomeBuffer);
-            computeShader.SetInt("BiomeCount", worldProfile.biomes.Length);
-            computeShader.SetFloat("BiomeMapScale", worldProfile.biomeMapScale);
+            // Масштаб селектора биомов берем напрямую из ассета графа
+            computeShader.SetFloat("BiomeMapScale", graph.selectorScale);
 
-            // Параметры пещер
+            // Параметры пещер (оставляем как внешние настройки)
             computeShader.SetFloat("_HubScale", globalSettings.hubScale);
             computeShader.SetFloat("_HubThreshold", globalSettings.hubThreshold);
             computeShader.SetFloat("_BranchScale", globalSettings.branchScale);
             computeShader.SetFloat("_BranchThreshold", globalSettings.branchThreshold);
 
-            // 3. Запуск генерации плотности (Ядро 0)
+            // 3. Запуск генерации плотности (Ядро GenerateDensity)
             computeShader.SetBuffer(densityKernel, "Densities", densitiesBuffer);
 
             int groupsX = Mathf.CeilToInt(actualSize.x / 4f);
@@ -91,24 +89,26 @@ namespace Assets.Modules.GenerationModule.Impl
             int groupsZ = Mathf.CeilToInt(actualSize.z / 4f);
             computeShader.Dispatch(densityKernel, groupsX, groupsY, groupsZ);
 
-            // 4. Запуск Marching Cubes (Ядро 1)
+            // 4. Запуск Marching Cubes (Ядро GenerateMesh)
             computeShader.SetBuffer(meshKernel, "Densities", densitiesBuffer);
             computeShader.SetBuffer(meshKernel, "Triangles", trianglesBuffer);
             computeShader.SetBuffer(meshKernel, "TriTable", triTableBuffer);
             computeShader.SetBuffer(meshKernel, "EdgeVertices", edgeVerticesBuffer);
             computeShader.SetBuffer(meshKernel, "Corners", cornersBuffer);
-            computeShader.SetBuffer(meshKernel, "Biomes", biomeBuffer);
+
+            // ВАЖНО: Больше не передаем буфер биомов в шейдер, так как он там не используется (удален из .compute)
+
             computeShader.Dispatch(meshKernel, groupsX, groupsY, groupsZ);
 
             // 5. Асинхронное чтение результата
             ComputeBuffer argsBuffer = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
             ComputeBuffer.CopyCount(trianglesBuffer, argsBuffer, 0);
 
+            // Локальная функция очистки
             void Cleanup()
             {
                 densitiesBuffer?.Release();
                 trianglesBuffer?.Release();
-                biomeBuffer?.Release();
                 argsBuffer?.Release();
             }
 
@@ -123,12 +123,12 @@ namespace Assets.Modules.GenerationModule.Impl
                     return;
                 }
 
-                // Читаем треугольники (содержат позиции и цвета)
+                // Читаем треугольники (содержат позиции и цвета из графа)
                 AsyncGPUReadback.Request(trianglesBuffer, triCount * 84, 0, triReq => {
                     if (triReq.hasError) { Cleanup(); return; }
                     Triangle[] gpuTriangles = triReq.GetData<Triangle>().ToArray();
 
-                    // Читаем плотности для системы копания на CPU
+                    // Читаем плотности для системы копания на CPU (чтобы Burst знал, где земля)
                     AsyncGPUReadback.Request(densitiesBuffer, denReq => {
                         if (denReq.hasError) { Cleanup(); return; }
                         float[] chunkDensities = denReq.GetData<float>().ToArray();

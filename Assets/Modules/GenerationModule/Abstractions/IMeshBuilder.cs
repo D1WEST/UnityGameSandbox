@@ -1,7 +1,7 @@
-﻿namespace Assets.Modules.GenerationModule.Abstractions
+﻿using Assets.Modules.GenerationModule.EditTools;
+
+namespace Assets.Modules.GenerationModule.Abstractions
 {
-    using Assets.Modules.GenerationModule.Models.WestMM;
-    using JetBrains.Annotations;
     using Assets.Modules.GenerationModule.Models;
     using Unity.Mathematics;
     using UnityEngine;
@@ -11,6 +11,6 @@
     /// </summary>
     public interface IMeshBuilder
     {
-        Mesh BuildMesh([CanBeNull] ChunkData chunkData, WorldProfile profile, int3 worldOffset);
+        Mesh BuildMesh(ChunkData chunkData, VoxelGraphData graph, int3 worldOffset);
     }
 }

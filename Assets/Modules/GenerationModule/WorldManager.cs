@@ -3,6 +3,7 @@ using Assets.Modules.GenerationModule.Models.WestMM;
 
 namespace Assets.Modules.GenerationModule
 {
+    using Assets.Modules.GenerationModule.EditTools;
     using Assets.Modules.GenerationModule.Models;
     using System.Collections.Generic;
     using Unity.Collections;
@@ -18,6 +19,9 @@ namespace Assets.Modules.GenerationModule
         public ComputeShader marchingCubesShader;
         private GPUChunkGenerator gpuChunkGenerator;
         public WorldProfile worldProfile;
+
+        [Header("Graph Data")]
+        public VoxelGraphData graphData;
 
         [Header("World Settings")]
         public int3 chunkSize = new int3(32, 32, 32);
@@ -53,12 +57,7 @@ namespace Assets.Modules.GenerationModule
 
         void Awake()
         {
-            // Инициализируем генератор один раз при старте
-            if (marchingCubesShader == null)
-            {
-                Debug.LogError("Ты забыл положить ComputeShader в WorldManager!");
-                return;
-            }
+            if (marchingCubesShader == null) return;
             gpuChunkGenerator = new GPUChunkGenerator(marchingCubesShader);
         }
 
@@ -137,10 +136,9 @@ namespace Assets.Modules.GenerationModule
         void SpawnChunk(int3 pos)
         {
             GameObject obj = Instantiate(chunkPrefab, new Vector3(pos.x, pos.y, pos.z), Quaternion.identity, transform);
-            obj.name = $"Chunk_{pos.x}_{pos.y}_{pos.z}";
-
             Chunk chunk = obj.GetComponent<Chunk>();
-            chunk.InitializeGPU(chunkSize, pos, terrainSettings, worldProfile, this, gpuChunkGenerator);
+
+            chunk.InitializeGPU(chunkSize, pos, terrainSettings, graphData, this, gpuChunkGenerator);
 
             activeChunks.Add(pos, chunk);
         }

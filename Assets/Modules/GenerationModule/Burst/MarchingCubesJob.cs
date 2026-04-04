@@ -1,4 +1,5 @@
-﻿using Assets.Modules.GenerationModule.Models;
+﻿using Assets.Modules.GenerationModule.EditTools;
+using Assets.Modules.GenerationModule.Models;
 using Assets.Modules.GenerationModule.Models.WestMM;
 using Assets.Modules.GenerationModule.Static;
 using Unity.Burst;
@@ -12,18 +13,17 @@ namespace Assets.Modules.GenerationModule.Burst
     public struct MarchingCubesJob : IJob
     {
         [ReadOnly] public NativeArray<float> Densities;
-        [ReadOnly] public NativeArray<BiomeData> Biomes;
+        [ReadOnly] public NativeArray<BakedBiome> Biomes;
 
         public int3 ChunkSize;
         public int3 WorldOffset;
         public float IsoLevel;
-        public float BiomeMapScale;
+        public float SelectorScale; // Масштаб из графа
         public float Seed;
 
-        // Выходные данные
         public NativeList<float3> Vertices;
         public NativeList<int> Triangles;
-        public NativeList<float4> Colors; // Цвета вершин
+        public NativeList<float4> Colors;
 
         public void Execute()
         {
@@ -91,39 +91,23 @@ namespace Assets.Modules.GenerationModule.Burst
                 Triangles.Add(vCount - 1);
             }
         }
-
         private float4 GetBlendedColor(float3 worldPos)
         {
             if (Biomes.Length == 0) return new float4(1, 1, 1, 1);
 
-            // 1. РАСЧЕТ СЕЛЕКТОРА (Температуры)
-            // Масштаб ДОЛЖЕН СОВПАДАТЬ с твоей нодой шума в порту Selector (например, 0.001)
-            float3 tempPos = worldPos * 0.001f;
-
-            // Используем cnoise (Perlin), если в графе выбран Perlin
+            // Считаем температуру как в графе
+            float3 tempPos = worldPos * SelectorScale;
             float currentTemp = math.saturate((noise.cnoise(tempPos) + 1.0f) / 2.0f);
 
             float4 finalCol = float4.zero;
-            float totalW = 0.0f;
+            float totalW = 0.0001f;
 
             for (int i = 0; i < Biomes.Length; i++)
             {
                 float dist = math.abs(currentTemp - Biomes[i].targetTemp);
-
-                // Если множитель 5.0, то биом "гаснет" при дистанции 0.2
-                float w = math.saturate(1.0f - dist * 5.0f);
-                w = math.pow(w, 2.0f);
-
-                float4 bCol = new float4(Biomes[i].biomeColor.r, Biomes[i].biomeColor.g, Biomes[i].biomeColor.b, 1f);
-                finalCol += bCol * w;
+                float w = math.pow(math.saturate(1.0f - dist * 5.0f), 2.0f);
+                finalCol += Biomes[i].color * w;
                 totalW += w;
-            }
-
-            // 2. ЗАЩИТА ОТ БЕЛОГО ЦВЕТА
-            // Если мы между биомами и суммарный вес слишком мал, берем цвет первого биома
-            if (totalW < 0.01f)
-            {
-                return new float4(Biomes[0].biomeColor.r, Biomes[0].biomeColor.g, Biomes[0].biomeColor.b, 1f);
             }
 
             return finalCol / totalW;

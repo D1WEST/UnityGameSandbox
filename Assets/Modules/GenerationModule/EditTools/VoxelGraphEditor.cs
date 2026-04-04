@@ -5,6 +5,7 @@
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using Unity.Mathematics;
     using UnityEditor;
     using UnityEditor.Experimental.GraphView;
     using UnityEditor.UIElements;
@@ -44,12 +45,38 @@
         private void Compile()
         {
             var outputNode = _graphView.nodes.ToList().OfType<OutputNode>().FirstOrDefault();
-            if (outputNode == null) return;
+            if (outputNode == null || _currentAsset == null) return;
 
+            // --- 1. ЗАПЕКАНИЕ ДАННЫХ ДЛЯ CPU (BURST) ---
+            var biomeNodes = _graphView.nodes.ToList().OfType<BiomeNode>().OrderBy(b => b.TargetTemp).ToList();
+            var bakedList = new List<BakedBiome>();
+            foreach (var b in biomeNodes)
+            {
+                bakedList.Add(new BakedBiome
+                {
+                    targetTemp = b.TargetTemp,
+                    color = new float4(b.ColorValue.r, b.ColorValue.g, b.ColorValue.b, 1f)
+                });
+            }
+            _currentAsset.bakedBiomes = bakedList.ToArray();
+
+            // Пытаемся найти масштаб шума в Selector
+            float scaleFromNode = 0.001f;
+            var selectorConnection = outputNode.SelectorInput.connections.FirstOrDefault();
+            if (selectorConnection != null)
+            {
+                var sourceNode = selectorConnection.output.node;
+                if (sourceNode is NoiseNode n) scaleFromNode = n.Scale;
+                else if (sourceNode is OctaveNoiseNode oct) scaleFromNode = oct.Scale;
+            }
+            _currentAsset.selectorScale = scaleFromNode;
+
+            EditorUtility.SetDirty(_currentAsset);
+            AssetDatabase.SaveAssets();
+
+            // --- 2. ГЕНЕРАЦИЯ HLSL ---
             int varCount = 0;
             var cache = new Dictionary<VoxelNode, string>();
-
-            // Генерируем селектор
             string selCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
             if (selVar == "0.0f") selVar = "0.5f";
 
@@ -59,15 +86,12 @@
                 var conn = port.connections.FirstOrDefault();
                 if (conn == null) continue;
                 var bNode = conn.output.node as BiomeNode;
-
                 string dCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out string dVar, cache);
                 string cCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string cVar, cache);
                 if (cVar == "0.0f") cVar = "float4(1,1,1,1)";
-
                 string tStr = bNode.TargetTemp.ToString("F3", CultureInfo.InvariantCulture);
                 string wVar = $"weight_{varCount++}";
 
-                // УБРАНЫ ФИГУРНЫЕ СКОБКИ {}, чтобы переменные из кэша были видны всем
                 biomeBlocks.Add($@"
         {dCode} {cCode}
         float {wVar} = pow(saturate(1.0 - abs({selVar} - {tStr}) * 5.0), 2.0);
@@ -77,20 +101,8 @@
             }
 
             string sharedLogic = $"{selCode}\n" + string.Join("\n", biomeBlocks);
-
-            string densityFinal = $@"
-    float totalW = 0.0001f;
-    float finalDensity = 0;
-    float4 finalColor = 0;
-    {sharedLogic}
-    density = finalDensity / totalW;";
-
-            string colorFinal = $@"
-    float totalW = 0.0001f;
-    float finalDensity = 0;
-    float4 finalColor = 0;
-    {sharedLogic}
-    return finalColor / totalW;";
+            string densityFinal = $"float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; {sharedLogic} density = finalDensity / totalW;";
+            string colorFinal = $"float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; {sharedLogic} return finalColor / totalW;";
 
             string shaderPath = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
             string content = File.ReadAllText(shaderPath);
@@ -98,30 +110,8 @@
             content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorFinal);
 
             File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
-
-            var worldManager = FindObjectOfType<Assets.Modules.GenerationModule.WorldManager>();
-            if (worldManager != null && worldManager.worldProfile != null)
-            {
-                var biomeNodes = _graphView.nodes.ToList().OfType<BiomeNode>().OrderBy(b => b.TargetTemp).ToList();
-                var profileBiomes = new List<Assets.Modules.GenerationModule.Models.WestMM.BiomeData>();
-
-                foreach (var bNode in biomeNodes)
-                {
-                    profileBiomes.Add(new Assets.Modules.GenerationModule.Models.WestMM.BiomeData
-                    {
-                        targetTemp = bNode.TargetTemp,
-                        biomeColor = bNode.ColorValue,
-                        biomeWeightMultiplier = 5.0f // Убедись, что это число совпадает с Job
-                    });
-                }
-
-                worldManager.worldProfile.biomes = profileBiomes.ToArray();
-
-                // КРИТИЧЕСКИ ВАЖНО: помечаем объект как измененный и сохраняем ассеты
-                EditorUtility.SetDirty(worldManager.worldProfile);
-                AssetDatabase.SaveAssets();
-                Debug.Log($"<color=green>WorldProfile Updated: {profileBiomes.Count} biomes synced.</color>");
-            }
+            AssetDatabase.ImportAsset(shaderPath);
+            Debug.Log("<color=cyan>Voxel Graph: Compiled & Baked!</color>");
         }
 
         private string ReplaceTag(string text, string start, string end, string newText)

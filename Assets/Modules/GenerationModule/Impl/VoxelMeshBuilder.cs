@@ -1,25 +1,24 @@
-﻿using Assets.Modules.GenerationModule.Abstractions;
-using Assets.Modules.GenerationModule.Burst;
-using Assets.Modules.GenerationModule.Models;
-using Assets.Modules.GenerationModule.Models.WestMM;
-using Unity.Collections;
-using Unity.Jobs;
-using Unity.Mathematics;
-using UnityEngine;
-using UnityEngine.Rendering;
-
-namespace Assets.Modules.GenerationModule.Impl
+﻿namespace Assets.Modules.GenerationModule.Impl
 {
+    using Assets.Modules.GenerationModule.Abstractions;
+    using Assets.Modules.GenerationModule.Burst;
+    using Assets.Modules.GenerationModule.EditTools;
+    using Assets.Modules.GenerationModule.Models;
+    using Unity.Collections;
+    using Unity.Jobs;
+    using Unity.Mathematics;
+    using UnityEngine;
+    using UnityEngine.Rendering;
     public class VoxelMeshBuilder : IMeshBuilder
     {
-        public Mesh BuildMesh(ChunkData chunkData, WorldProfile profile, int3 worldOffset)
+        public Mesh BuildMesh(ChunkData chunkData, VoxelGraphData graph, int3 worldOffset)
         {
             var vertices = new NativeList<float3>(Allocator.TempJob);
             var triangles = new NativeList<int>(Allocator.TempJob);
             var colors = new NativeList<float4>(Allocator.TempJob);
 
-            // Копируем данные биомов в NativeArray для Burst
-            var biomesNative = new NativeArray<BiomeData>(profile.biomes, Allocator.TempJob);
+            // Копируем запеченные данные из ассета графа
+            var biomesNative = new NativeArray<BakedBiome>(graph.bakedBiomes, Allocator.TempJob);
 
             var job = new MarchingCubesJob
             {
@@ -28,8 +27,8 @@ namespace Assets.Modules.GenerationModule.Impl
                 ChunkSize = chunkData.Size,
                 WorldOffset = worldOffset,
                 IsoLevel = 0f,
-                BiomeMapScale = profile.biomeMapScale,
-                Seed = 1337f, // Убедись, что сид совпадает с WorldManager
+                SelectorScale = graph.selectorScale, // Передаем масштаб
+                Seed = 1337f,
                 Vertices = vertices,
                 Triangles = triangles,
                 Colors = colors
@@ -39,26 +38,17 @@ namespace Assets.Modules.GenerationModule.Impl
 
             if (triangles.Length == 0)
             {
-                vertices.Dispose();
-                triangles.Dispose();
-                colors.Dispose();
-                biomesNative.Dispose();
+                vertices.Dispose(); triangles.Dispose(); colors.Dispose(); biomesNative.Dispose();
                 return null;
             }
 
             Mesh mesh = new Mesh();
             mesh.SetVertices(vertices.AsArray().Reinterpret<Vector3>());
-            mesh.SetColors(colors.AsArray().Reinterpret<Color>()); // УСТАНАВЛИВАЕМ ЦВЕТА
+            mesh.SetColors(colors.AsArray().Reinterpret<Color>());
             mesh.SetTriangles(triangles.AsArray().ToArray(), 0);
 
-            // Оптимизированное обновление меша
-            MeshUpdateFlags flags = MeshUpdateFlags.DontValidateIndices |
-                                    MeshUpdateFlags.DontResetBoneBounds |
-                                    MeshUpdateFlags.DontNotifyMeshUsers |
-                                    MeshUpdateFlags.DontRecalculateBounds;
-
-            mesh.RecalculateNormals(flags);
-            mesh.RecalculateBounds(flags);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
 
             vertices.Dispose();
             triangles.Dispose();

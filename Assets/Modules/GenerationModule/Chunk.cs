@@ -1,4 +1,5 @@
 ﻿using Assets.Modules.GenerationModule.Abstractions;
+using Assets.Modules.GenerationModule.EditTools;
 using Assets.Modules.GenerationModule.Impl;
 using Assets.Modules.GenerationModule.Models;
 using Assets.Modules.GenerationModule.Models.WestMM;
@@ -19,7 +20,7 @@ namespace Assets.Modules.GenerationModule
         // Наш CPU-билдер для копания
         private IMeshBuilder meshBuilder;
 
-        public void InitializeGPU(int3 size, int3 worldPos, TerrainSettings globalSettings, WorldProfile worldProfile, WorldManager manager, GPUChunkGenerator gpuGen)
+        public void InitializeGPU(int3 size, int3 worldPos, TerrainSettings globalSettings, VoxelGraphData graph, WorldManager manager, GPUChunkGenerator gpuGen)
         {
             this.worldManager = manager;
             meshFilter = GetComponent<MeshFilter>();
@@ -36,7 +37,7 @@ namespace Assets.Modules.GenerationModule
             else
             {
                 // ИСПРАВЛЕНО: Передаем 5 аргументов (добавлен worldProfile)
-                gpuGen.GenerateChunkAsync(size, worldPos, worldProfile, globalSettings, (mesh, densitiesArray) =>
+                gpuGen.GenerateChunkAsync(size, worldPos, graph, globalSettings, (mesh, densitiesArray) =>
                 {
                     if (this == null || gameObject == null)
                     {
@@ -74,9 +75,10 @@ namespace Assets.Modules.GenerationModule
         {
             if (meshBuilder == null || voxelData == null) return;
 
-            // Передаем профиль и глобальную позицию чанка
             int3 worldOffset = new int3((int)transform.position.x, (int)transform.position.y, (int)transform.position.z);
-            Mesh newMesh = meshBuilder.BuildMesh(voxelData, worldManager.worldProfile, worldOffset);
+
+            // ПЕРЕДАЕМ graphData вместо worldProfile
+            Mesh newMesh = meshBuilder.BuildMesh(voxelData, worldManager.graphData, worldOffset);
 
             if (newMesh == null)
             {
