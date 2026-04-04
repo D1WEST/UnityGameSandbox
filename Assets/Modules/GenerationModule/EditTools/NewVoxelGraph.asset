@@ -13,16 +13,6 @@ MonoBehaviour:
   m_Name: NewVoxelGraph
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.GenerationModule.EditTools.VoxelGraphData
   Nodes:
-  - GUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 191, y: 220}
-    Data: None
-  - GUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 210, y: 458}
-    Data: Const|40
   - GUID: b671ef29-c8af-4a21-981d-6d97712c9208
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
@@ -63,15 +53,17 @@ MonoBehaviour:
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1167, y: -70}
     Data: None
+  - GUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 206, y: 223}
+    Data: Const|40
+  - GUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 206, y: 385}
+    Data: None
   Edges:
-  - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
-    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
-    OutputPortName: Value
-    InputPortName: B
-  - OutputNodeGUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
-    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
-    OutputPortName: Y
-    InputPortName: A
   - OutputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
     InputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
     OutputPortName: Out
@@ -100,3 +92,11 @@ MonoBehaviour:
     InputNodeGUID: FINAL_OUTPUT
     OutputPortName: Out
     InputPortName: Density In
+  - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
+    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    OutputPortName: Value
+    InputPortName: A
+  - OutputNodeGUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
+    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    OutputPortName: Y
+    InputPortName: B

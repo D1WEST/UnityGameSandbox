@@ -92,7 +92,7 @@ void GenerateDensity(uint3 id : SV_DispatchThreadID)
 float fbm_0 = SimplexNoise_Octaves(worldPos, 0.0100, float3(0,0,0), uint(4), 2.0, 0.5000, 0.0);
 float math_1 = 14.0000f * fbm_0;
 float noise_2 = PerlinNoise(worldPos * 0.0100);
-float math_3 = worldPos.y - 40.0000f;
+float math_3 = 40.0000f - worldPos.y;
 float math_4 = noise_2 + math_3;
 float math_5 = math_1 + math_4;
 
