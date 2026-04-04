@@ -1,4 +1,5 @@
 ﻿using Assets.Modules.GenerationModule.Impl;
+using Assets.Modules.GenerationModule.Models.WestMM;
 
 namespace Assets.Modules.GenerationModule
 {
@@ -16,6 +17,7 @@ namespace Assets.Modules.GenerationModule
         [Header("GPU Generation")]
         public ComputeShader marchingCubesShader;
         private GPUChunkGenerator gpuChunkGenerator;
+        public WorldProfile worldProfile;
 
         [Header("World Settings")]
         public int3 chunkSize = new int3(32, 32, 32);
@@ -138,7 +140,7 @@ namespace Assets.Modules.GenerationModule
             obj.name = $"Chunk_{pos.x}_{pos.y}_{pos.z}";
 
             Chunk chunk = obj.GetComponent<Chunk>();
-            chunk.InitializeGPU(chunkSize, pos, terrainSettings, this, gpuChunkGenerator);
+            chunk.InitializeGPU(chunkSize, pos, terrainSettings, worldProfile, this, gpuChunkGenerator);
 
             activeChunks.Add(pos, chunk);
         }

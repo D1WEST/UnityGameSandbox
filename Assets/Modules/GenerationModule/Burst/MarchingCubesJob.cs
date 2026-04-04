@@ -1,4 +1,6 @@
-﻿using Assets.Modules.GenerationModule.Static;
+﻿using Assets.Modules.GenerationModule.Models;
+using Assets.Modules.GenerationModule.Models.WestMM;
+using Assets.Modules.GenerationModule.Static;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -10,19 +12,21 @@ namespace Assets.Modules.GenerationModule.Burst
     public struct MarchingCubesJob : IJob
     {
         [ReadOnly] public NativeArray<float> Densities;
-        public int3 ChunkSize;
-        public float IsoLevel; // Граница плотности (обычно 0f)
+        [ReadOnly] public NativeArray<BiomeData> Biomes;
 
-        // Выходные данные для Unity Mesh
+        public int3 ChunkSize;
+        public int3 WorldOffset;
+        public float IsoLevel;
+        public float BiomeMapScale;
+        public float Seed;
+
+        // Выходные данные
         public NativeList<float3> Vertices;
         public NativeList<int> Triangles;
+        public NativeList<float4> Colors; // Цвета вершин
 
-        /// <summary>
-        /// Executes chunk processing of each cube.
-        /// </summary>
         public void Execute()
         {
-            // Проходим по кубам. Если данных 17, то кубов 16.
             for (int x = 0; x < ChunkSize.x - 1; x++)
             {
                 for (int y = 0; y < ChunkSize.y - 1; y++)
@@ -35,66 +39,52 @@ namespace Assets.Modules.GenerationModule.Burst
             }
         }
 
-        /// <summary>
-        /// Processes one cube's density.
-        /// </summary>
-        /// <param name="pos"></param>
         private void ProcessCube(int3 pos)
         {
-            // Вместо unsafe используем обычный массив. 
-            // В Burst короткие массивы фиксированной длины не создают аллокаций в куче.
             float[] cubeDensities = new float[8];
             int cubeIndex = 0;
 
-            // 1. Собираем данные из 8 углов
             for (int i = 0; i < 8; i++)
             {
                 float d = Densities[GetIndex(pos + MarchingCubesTables.Corners[i])];
                 cubeDensities[i] = d;
-
-                if (d > IsoLevel)
-                {
-                    cubeIndex |= (1 << i);
-                }
+                if (d > IsoLevel) cubeIndex |= (1 << i);
             }
 
-            // Если куб пуст или полностью заполнен — выходим
             if (cubeIndex == 0 || cubeIndex == 255) return;
 
-            // 2. Генерируем вершины на ребрах
             float3[] edgeVertices = new float3[12];
-
-            // Получаем маску ребер для этого индекса куба (какие ребра пересекаются поверхностью)
-            // В некоторых таблицах есть EdgeTable[256], если нет — просто считаем все 12.
             for (int i = 0; i < 12; i++)
             {
                 int2 edge = MarchingCubesTables.EdgeVertices[i];
-
                 float3 p1 = pos + MarchingCubesTables.Corners[edge.x];
                 float3 p2 = pos + MarchingCubesTables.Corners[edge.y];
-
-                float v1 = cubeDensities[edge.x];
-                float v2 = cubeDensities[edge.y];
-
-                edgeVertices[i] = Interpolate(p1, v1, p2, v2);
+                edgeVertices[i] = Interpolate(p1, cubeDensities[edge.x], p2, cubeDensities[edge.y]);
             }
 
-            // 3. Формируем треугольники
             int tableOffset = cubeIndex * 16;
             for (int i = 0; i < 16; i += 3)
             {
                 int a = MarchingCubesTables.TriTable[tableOffset + i];
-                if (a == -1) break; // Конец треугольников для этого куба
+                if (a == -1) break;
 
                 int b = MarchingCubesTables.TriTable[tableOffset + i + 1];
                 int c = MarchingCubesTables.TriTable[tableOffset + i + 2];
 
                 // Добавляем вершины
-                Vertices.Add(edgeVertices[a]);
-                Vertices.Add(edgeVertices[b]);
-                Vertices.Add(edgeVertices[c]);
+                float3 vA = edgeVertices[a];
+                float3 vB = edgeVertices[b];
+                float3 vC = edgeVertices[c];
 
-                // Добавляем индексы (порядок a, b, c)
+                Vertices.Add(vA);
+                Vertices.Add(vB);
+                Vertices.Add(vC);
+
+                // РАССЧИТЫВАЕМ ЦВЕТА (как в шейдере)
+                Colors.Add(GetBlendedColor(vA + (float3)WorldOffset));
+                Colors.Add(GetBlendedColor(vB + (float3)WorldOffset));
+                Colors.Add(GetBlendedColor(vC + (float3)WorldOffset));
+
                 int vCount = Vertices.Length;
                 Triangles.Add(vCount - 3);
                 Triangles.Add(vCount - 2);
@@ -102,19 +92,33 @@ namespace Assets.Modules.GenerationModule.Burst
             }
         }
 
-        // Линейная интерполяция для гладкости
-        private float3 Interpolate(float3 p1, float val1, float3 p2, float val2)
+        private float4 GetBlendedColor(float3 worldPos)
         {
-            // 1. Проверка на экстремальную близость к изо-уровню
-            if (math.abs(IsoLevel - val1) < 0.00001f) return p1;
-            if (math.abs(IsoLevel - val2) < 0.00001f) return p2;
-            if (math.abs(val1 - val2) < 0.00001f) return p1;
+            // Те же формулы шума, что и в MarchingCubes.compute
+            float3 tempPos = new float3(worldPos.x * BiomeMapScale, Seed, worldPos.z * BiomeMapScale);
+            float currentTemp = math.saturate((noise.snoise(tempPos) + 1.0f) / 2.0f);
 
-            // 2. Вычисляем коэффициент смещения (mu)
-            // Формула: (Нужный_Уровень - Значение_В_Точке1) / (Значение_В_Точке2 - Значение_В_Точке1)
-            float mu = (IsoLevel - val1) / (val2 - val1);
+            float4 finalCol = float4.zero;
+            float totalW = 0.0001f;
 
-            // 3. Линейно смещаем позицию от p1 к p2
+            for (int i = 0; i < Biomes.Length; i++)
+            {
+                float dist = math.abs(currentTemp - Biomes[i].targetTemp);
+                float w = math.saturate(1.0f - dist * Biomes[i].biomeWeightMultiplier);
+                w = math.pow(w, 2.0f);
+
+                // Приводим UnityEngine.Color к float4
+                float4 bCol = new float4(Biomes[i].biomeColor.r, Biomes[i].biomeColor.g, Biomes[i].biomeColor.b, 1f);
+                finalCol += bCol * w;
+                totalW += w;
+            }
+
+            return finalCol / totalW;
+        }
+
+        private float3 Interpolate(float3 p1, float v1, float3 p2, float v2)
+        {
+            float mu = (IsoLevel - v1) / (v2 - v1);
             return p1 + mu * (p2 - p1);
         }
 
