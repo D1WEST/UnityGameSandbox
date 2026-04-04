@@ -1,4 +1,6 @@
-﻿namespace Assets.Modules.GenerationModule
+﻿using Assets.Modules.GenerationModule.Impl;
+
+namespace Assets.Modules.GenerationModule
 {
     using Assets.Modules.GenerationModule.Models;
     using System.Collections.Generic;
@@ -11,7 +13,12 @@
         public GameObject chunkPrefab;
         public Transform player;
 
-        public int3 chunkSize = new int3(16, 16, 16);
+        [Header("GPU Generation")]
+        public ComputeShader marchingCubesShader;
+        private GPUChunkGenerator gpuChunkGenerator;
+
+        [Header("World Settings")]
+        public int3 chunkSize = new int3(32, 32, 32);
         public int renderDistance = 6;
         public int chunksPerFrame = 2;
 
@@ -42,6 +49,17 @@
         // Список позиций, которые нужно создать
         private List<int3> chunkCreationQueue = new List<int3>();
 
+        void Awake()
+        {
+            // Инициализируем генератор один раз при старте
+            if (marchingCubesShader == null)
+            {
+                Debug.LogError("Ты забыл положить ComputeShader в WorldManager!");
+                return;
+            }
+            gpuChunkGenerator = new GPUChunkGenerator(marchingCubesShader);
+        }
+
         void Update()
         {
             if (player == null) return;
@@ -59,28 +77,6 @@
             UnloadFarChunks(currentPlayerChunk);
         }
 
-        void GenerateWorld()
-        {
-            for (int x = -renderDistance; x <= renderDistance; x++)
-            {
-                for (int z = -renderDistance; z <= renderDistance; z++)
-                {
-                    for (int y = 0; y < 2; y++)
-                    {
-                        int3 chunkPos = new int3(x * chunkSize.x, y * chunkSize.y, z * chunkSize.z);
-
-                        GameObject chunkObj = Instantiate(chunkPrefab, new Vector3(chunkPos.x, chunkPos.y, chunkPos.z),
-                            Quaternion.identity);
-                        chunkObj.name = $"Chunk {chunkPos}";
-
-                        Chunk chunk = chunkObj.GetComponent<Chunk>();
-                        chunk.Initialize(chunkSize, chunkPos, terrainSettings, this);
-
-                        chunks.Add(chunkPos, chunk);
-                    }
-                }
-            }
-        }
 
         int3 GetChunkCoords(Vector3 worldPos)
         {
@@ -142,7 +138,7 @@
             obj.name = $"Chunk_{pos.x}_{pos.y}_{pos.z}";
 
             Chunk chunk = obj.GetComponent<Chunk>();
-            chunk.Initialize(chunkSize, pos, terrainSettings, this);
+            chunk.InitializeGPU(chunkSize, pos, terrainSettings, this, gpuChunkGenerator);
 
             activeChunks.Add(pos, chunk);
         }

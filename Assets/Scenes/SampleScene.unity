@@ -947,6 +947,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.GenerationModule.WorldManager
   chunkPrefab: {fileID: 662446737174614774, guid: a73db11a714ea9742a29ad8d2b0a159d, type: 3}
   player: {fileID: 208961342}
+  marchingCubesShader: {fileID: 7200000, guid: 63f6feef258bf9142a8d96f4e94342bd, type: 3}
   chunkSize:
     x: 16
     y: 16
