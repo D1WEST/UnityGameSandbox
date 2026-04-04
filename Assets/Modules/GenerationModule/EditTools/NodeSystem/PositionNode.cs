@@ -1,4 +1,6 @@
-﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
+﻿using System.Collections.Generic;
+
+namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
     using UnityEditor.Experimental.GraphView;
 
@@ -23,7 +25,7 @@
             outputContainer.Add(port);
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
             varName = "worldPos"; // Это вектор float3
             return "";

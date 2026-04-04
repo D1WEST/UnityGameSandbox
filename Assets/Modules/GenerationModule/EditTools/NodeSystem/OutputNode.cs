@@ -1,30 +1,61 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
     using UnityEditor.Experimental.GraphView;
+    using UnityEngine.UIElements;
+    using System.Collections.Generic;
+
     public class OutputNode : VoxelNode
     {
-        public Port Input;
+        public Port SelectorInput; // Сюда подключаем шум температуры/влажности
+        public List<Port> BiomePorts = new List<Port>();
 
         public OutputNode()
         {
-            title = "FINAL DENSITY";
-            GUID = "FINAL_OUTPUT"; // Фиксированный ID для удобства поиска
+            title = "WORLD OUTPUT";
+            GUID = "FINAL_OUTPUT";
 
-            Input = GeneratePort(Direction.Input);
-            Input.portName = "Density In";
-            inputContainer.Add(Input);
+            // 1. Главный порт управления переключением биомов
+            SelectorInput = GeneratePort(Direction.Input);
+            SelectorInput.portName = "Biome Selector (0-1)";
+            inputContainer.Add(SelectorInput);
 
-            // Эту ноду нельзя удалить (опционально)
-            capabilities &= ~Capabilities.Deletable;
+            // 2. Кнопка добавления нового слота биома
+            var addBtn = new Button(AddBiomeSlot) { text = "Add Biome Slot (+)" };
+            titleContainer.Add(addBtn);
 
             RefreshExpandedState();
             RefreshPorts();
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public void AddBiomeSlot()
         {
-            // Просто прокидываем код от входа дальше
-            return GetInputHLSL(Input, ref varCount, out varName);
+            var p = GeneratePort(Direction.Input);
+            int index = BiomePorts.Count;
+            p.portName = $"Biome {index}";
+
+            // Кнопка удаления конкретного порта
+            var removeBtn = new Button(() => RemoveBiomeSlot(p)) { text = "X", style = { fontSize = 10 } };
+            p.contentContainer.Add(removeBtn);
+
+            BiomePorts.Add(p);
+            inputContainer.Add(p);
+
+            RefreshExpandedState();
+            RefreshPorts();
+        }
+
+        private void RemoveBiomeSlot(Port p)
+        {
+            inputContainer.Remove(p);
+            BiomePorts.Remove(p);
+            RefreshExpandedState();
+            RefreshPorts();
+        }
+
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
+        {
+            varName = "";
+            return "";
         }
     }
 }

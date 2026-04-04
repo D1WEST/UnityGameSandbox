@@ -94,23 +94,36 @@ namespace Assets.Modules.GenerationModule.Burst
 
         private float4 GetBlendedColor(float3 worldPos)
         {
-            // Те же формулы шума, что и в MarchingCubes.compute
-            float3 tempPos = new float3(worldPos.x * BiomeMapScale, Seed, worldPos.z * BiomeMapScale);
-            float currentTemp = math.saturate((noise.snoise(tempPos) + 1.0f) / 2.0f);
+            if (Biomes.Length == 0) return new float4(1, 1, 1, 1);
+
+            // 1. РАСЧЕТ СЕЛЕКТОРА (Температуры)
+            // Масштаб ДОЛЖЕН СОВПАДАТЬ с твоей нодой шума в порту Selector (например, 0.001)
+            float3 tempPos = worldPos * 0.001f;
+
+            // Используем cnoise (Perlin), если в графе выбран Perlin
+            float currentTemp = math.saturate((noise.cnoise(tempPos) + 1.0f) / 2.0f);
 
             float4 finalCol = float4.zero;
-            float totalW = 0.0001f;
+            float totalW = 0.0f;
 
             for (int i = 0; i < Biomes.Length; i++)
             {
                 float dist = math.abs(currentTemp - Biomes[i].targetTemp);
-                float w = math.saturate(1.0f - dist * Biomes[i].biomeWeightMultiplier);
+
+                // Если множитель 5.0, то биом "гаснет" при дистанции 0.2
+                float w = math.saturate(1.0f - dist * 5.0f);
                 w = math.pow(w, 2.0f);
 
-                // Приводим UnityEngine.Color к float4
                 float4 bCol = new float4(Biomes[i].biomeColor.r, Biomes[i].biomeColor.g, Biomes[i].biomeColor.b, 1f);
                 finalCol += bCol * w;
                 totalW += w;
+            }
+
+            // 2. ЗАЩИТА ОТ БЕЛОГО ЦВЕТА
+            // Если мы между биомами и суммарный вес слишком мал, берем цвет первого биома
+            if (totalW < 0.01f)
+            {
+                return new float4(Biomes[0].biomeColor.r, Biomes[0].biomeColor.g, Biomes[0].biomeColor.b, 1f);
             }
 
             return finalCol / totalW;

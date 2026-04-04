@@ -1,29 +1,34 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
+    using UnityEditor.Experimental.GraphView;
+    using UnityEngine.UIElements;
     using System.Collections.Generic;
     using System.Linq;
-    using UnityEditor.Experimental.GraphView;
+
     public abstract class VoxelNode : Node
     {
         public string GUID;
 
-        public abstract string GetHLSL(ref int varCount, out string varName);
+        // Обновленная сигнатура для всех нод
+        public abstract string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache);
 
-        protected Port GeneratePort(Direction direction, Port.Capacity capacity = Port.Capacity.Single)
+        // Исправленный метод создания портов с параметром типа
+        protected Port GeneratePort(Direction direction, Port.Capacity capacity = Port.Capacity.Single, System.Type type = null)
         {
-            return InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(float));
+            if (type == null) type = typeof(float);
+            var cap = (direction == Direction.Output) ? Port.Capacity.Multi : Port.Capacity.Single;
+            return InstantiatePort(Orientation.Horizontal, direction, cap, type);
         }
-
-        // Улучшенный метод получения ввода: учитывает суффиксы .x, .y, .z
-        protected string GetInputHLSL(Port port, ref int varCount, out string varName)
+        public virtual void RefreshUI() { }
+        // Делаем PUBLIC, чтобы VoxelGraphEditor мог вызывать этот метод
+        public string GetInputHLSL(Port port, ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
             var connection = port.connections.FirstOrDefault();
             if (connection != null)
             {
                 var connectedNode = connection.output.node as VoxelNode;
-                string code = connectedNode.GetHLSL(ref varCount, out varName);
+                string code = connectedNode.GetHLSL(ref varCount, out varName, cache);
 
-                // Если порт называется X, Y или Z - добавляем суффикс к имени переменной
                 string pName = connection.output.portName;
                 if (pName == "X") varName += ".x";
                 else if (pName == "Y") varName += ".y";

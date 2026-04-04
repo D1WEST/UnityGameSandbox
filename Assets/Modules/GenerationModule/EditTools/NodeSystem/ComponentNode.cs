@@ -1,4 +1,6 @@
-﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
+﻿using System.Collections.Generic;
+
+namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
     using UnityEditor.Experimental.GraphView;
 
@@ -31,11 +33,10 @@
             outputContainer.Add(p);
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
-            // Мы просто пробрасываем входную переменную. 
-            // В методе GetInputHLSL базового класса добавится .x, .y или .z в зависимости от порта.
-            return GetInputHLSL(Input, ref varCount, out varName);
+            // В этой ноде мы не кэшируем саму ноду, так как она лишь пробрасывает компоненты
+            return GetInputHLSL(Input, ref varCount, out varName, cache);
         }
     }
 }

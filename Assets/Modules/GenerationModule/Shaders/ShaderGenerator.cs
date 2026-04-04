@@ -1,4 +1,5 @@
-﻿using Assets.Modules.GenerationModule.EditTools.NodeSystem;
+﻿using System.Collections.Generic;
+using Assets.Modules.GenerationModule.EditTools.NodeSystem;
 using System.IO;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ namespace Assets.Modules.GenerationModule.Shaders
             string resultVariable;
 
             // Рекурсивно генерируем HLSL код начиная с последней ноды
-            string generatedHLSL = finalOutputNode.GetHLSL(ref varCounter, out resultVariable);
+            string generatedHLSL = finalOutputNode.GetHLSL(ref varCounter, out resultVariable, new Dictionary<VoxelNode, string>());
 
             // Добавляем финальное присвоение
             generatedHLSL += $"\n    float finalDensity = {resultVariable};";

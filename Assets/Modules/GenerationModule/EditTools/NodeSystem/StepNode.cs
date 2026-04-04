@@ -1,4 +1,6 @@
-﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
+﻿using System.Collections.Generic;
+
+namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
     using UnityEditor.Experimental.GraphView;
 
@@ -19,11 +21,16 @@
             RefreshPorts();
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
-            string cIn = GetInputHLSL(InputIn, ref varCount, out string nIn);
-            string cEdge = GetInputHLSL(InputEdge, ref varCount, out string nEdge);
+            if (cache.TryGetValue(this, out varName)) return "";
+
+            string cIn = GetInputHLSL(InputIn, ref varCount, out string nIn, cache);
+            string cEdge = GetInputHLSL(InputEdge, ref varCount, out string nEdge, cache);
+
             varName = $"step_{varCount++}";
+            cache.Add(this, varName);
+
             return cIn + cEdge + $"float {varName} = step({nEdge}, {nIn});\n";
         }
     }

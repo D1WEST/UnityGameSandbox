@@ -1,5 +1,6 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
+    using System.Collections.Generic;
     using UnityEditor.Experimental.GraphView;
     public enum MathType { Add, Subtract, Multiply, Divide }
 
@@ -41,12 +42,16 @@
             title = type.ToString();
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
-            string codeA = GetInputHLSL(InputA, ref varCount, out string nameA);
-            string codeB = GetInputHLSL(InputB, ref varCount, out string nameB);
+            if (cache.TryGetValue(this, out varName)) return "";
+
+            string codeA = GetInputHLSL(InputA, ref varCount, out string nameA, cache);
+            string codeB = GetInputHLSL(InputB, ref varCount, out string nameB, cache);
 
             varName = $"math_{varCount++}";
+            cache.Add(this, varName);
+
             string op = Operation switch
             {
                 MathType.Add => "+",

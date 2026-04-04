@@ -1,5 +1,6 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
+    using System.Collections.Generic;
     using System.Globalization;
     using UnityEditor.Experimental.GraphView;
     using UnityEditor.UIElements;
@@ -39,23 +40,26 @@
             RefreshPorts();
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
-            varName = $"noise_{varCount++}";
-            string functionName = SelectedType switch
-            {
-                NoiseType.Simplex => "SimplexNoise", // НЕ snoise
-                NoiseType.Perlin => "PerlinNoise",
-                NoiseType.WhiteNoise => "inoise",
-                _ => "SimplexNoise"
-            };
+            if (cache.TryGetValue(this, out varName)) return "";
 
+            varName = $"noise_{varCount++}";
+            cache.Add(this, varName);
+
+            string func = SelectedType == NoiseType.Simplex ? "SimplexNoise" : "PerlinNoise";
             string s = Scale.ToString("F4", CultureInfo.InvariantCulture);
 
-            if (SelectedType == NoiseType.WhiteNoise)
-                return $"float {varName} = {functionName}(worldPos * {s}, 1.0).x;\n"; // jitter = 1.0
+            return $"float {varName} = {func}(worldPos * {s});\n";
+        }
 
-            return $"float {varName} = {functionName}(worldPos * {s});\n";
+        public void RefreshUI()
+        {
+            var enumField = mainContainer.Query<EnumField>().First();
+            if (enumField != null) enumField.value = SelectedType;
+
+            var scaleField = mainContainer.Query<FloatField>().First();
+            if (scaleField != null) scaleField.value = Scale;
         }
     }
 }

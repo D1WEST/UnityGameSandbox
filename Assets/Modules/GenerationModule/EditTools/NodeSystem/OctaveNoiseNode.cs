@@ -1,7 +1,8 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
-    using UnityEngine.UIElements;
+    using System.Collections.Generic;
     using System.Globalization;
+    using UnityEngine.UIElements;
 
     public class OctaveNoiseNode : VoxelNode
     {
@@ -39,18 +40,40 @@
             RefreshPorts();
         }
 
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override void RefreshUI()
         {
+            mainContainer.Q<EnumField>().value = SelectedType;
+            mainContainer.Q<IntegerField>().value = Octaves;
+
+            // Находим все FloatField и обновляем их по порядку создания
+            var floats = mainContainer.Query<FloatField>().ToList();
+            if (floats.Count >= 2)
+            {
+                floats[0].value = Persistence;
+                floats[1].value = Scale;
+            }
+        }
+
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
+        {
+            if (cache.TryGetValue(this, out varName)) return ""; // КРИТИЧЕСКИ ВАЖНО
+
             varName = $"fbm_{varCount++}";
+            cache.Add(this, varName);
+
             var culture = System.Globalization.CultureInfo.InvariantCulture;
-
             string s = Scale.ToString("F4", culture);
-            string p = Persistence.ToString("F4", culture);
 
-            string func = SelectedType == NoiseType.Simplex ? "SimplexNoise_Octaves" : "PerlinNoise_Octaves";
+            // Для OctaveNoise
+            if (this is OctaveNoiseNode oct)
+            {
+                string p = oct.Persistence.ToString("F4", culture);
+                string func = oct.SelectedType == NoiseType.Simplex ? "SimplexNoise_Octaves" : "PerlinNoise_Octaves";
+                return $"float {varName} = {func}(worldPos, {s}, float3(0,0,0), uint({oct.Octaves}), 2.0, {p}, 0.0);\n";
+            }
 
-            // ВАЖНО: используем uint для октав, чтобы соответствовать сигнатуре функции в HLSL
-            return $"float {varName} = {func}(worldPos, {s}, float3(0,0,0), uint({Octaves}), 2.0, {p}, 0.0);\n";
+            // Для обычного шума
+            return $"float {varName} = SimplexNoise(worldPos * {s});\n";
         }
     }
 }

@@ -30,6 +30,11 @@
                 new SearchTreeEntry(new GUIContent("Octave")) { level = 2, userData = typeof(OctaveNoiseNode) },
                 new SearchTreeEntry(new GUIContent("Step")) { level = 2, userData = typeof(StepNode) },
 
+                // РАЗДЕЛ: ЦВЕТА
+                new SearchTreeGroupEntry(new GUIContent("Colors"), 1),
+                new SearchTreeEntry(new GUIContent("Color Picker")) { level = 2, userData = typeof(ColorNode) },
+                new SearchTreeEntry(new GUIContent("Mix Colors")) { level = 2, userData = typeof(LerpColorNode) },
+
                 // РАЗДЕЛ: МАТЕМАТИКА
                 new SearchTreeGroupEntry(new GUIContent("Math"), 1),
                 new SearchTreeEntry(new GUIContent("Add (+)")) { level = 2, userData = MathType.Add },
@@ -47,6 +52,7 @@
 
                 // РАЗДЕЛ: ВЫВОД
                 new SearchTreeGroupEntry(new GUIContent("System"), 1),
+                new SearchTreeEntry(new GUIContent("Biome Node")) { level = 2, userData = typeof(BiomeNode) },
                 new SearchTreeEntry(new GUIContent("FINAL OUTPUT")) { level = 2, userData = typeof(OutputNode) }
             };
             return tree;

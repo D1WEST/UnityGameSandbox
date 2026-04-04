@@ -14,103 +14,53 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.GenerationModule.Models.WestMM.WorldProfile
   biomeMapScale: 0.01
   biomes:
-  - targetTemp: 0
-    minHeight: 0
-    maxHeight: 100
-    detailScale: 0.02
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
-    padding:
-      x: 0
-      y: 0
-    biomeColor: {r: 1, g: 0, b: 0, a: 0}
-  - targetTemp: 0.1
-    minHeight: 0
-    maxHeight: 100
-    detailScale: 0.01
-    detailAmplitude: 1
-    biomeWeightMultiplier: 2
-    padding:
-      x: 0
-      y: 0
-    biomeColor: {r: 0.90588236, g: 0.52220845, b: 0.019607833, a: 0}
   - targetTemp: 0.2
     minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
+    maxHeight: 0
+    detailScale: 0
+    detailAmplitude: 0
+    biomeWeightMultiplier: 5
     padding:
       x: 0
       y: 0
-    biomeColor: {r: 0.9713187, g: 1, b: 0, a: 0}
-  - targetTemp: 0.3
-    minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
-    padding:
-      x: 0
-      y: 0
-    biomeColor: {r: 0, g: 1, b: 0.071077585, a: 0}
+    biomeColor: {r: 1, g: 1, b: 1, a: 1}
   - targetTemp: 0.4
     minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
+    maxHeight: 0
+    detailScale: 0
+    detailAmplitude: 0
+    biomeWeightMultiplier: 5
     padding:
       x: 0
       y: 0
-    biomeColor: {r: 0, g: 0.8501792, b: 1, a: 0}
-  - targetTemp: 0.5
-    minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
-    padding:
-      x: 0
-      y: 0
-    biomeColor: {r: 0.0107040405, g: 0, b: 1, a: 0}
+    biomeColor: {r: 1, g: 1, b: 1, a: 1}
   - targetTemp: 0.6
     minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
+    maxHeight: 0
+    detailScale: 0
+    detailAmplitude: 0
+    biomeWeightMultiplier: 5
     padding:
       x: 0
       y: 0
-    biomeColor: {r: 1, g: 0, b: 0.70213413, a: 0}
-  - targetTemp: 0.7
-    minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
-    padding:
-      x: 0
-      y: 0
-    biomeColor: {r: 0.4948659, g: 0, b: 1, a: 0}
+    biomeColor: {r: 1, g: 1, b: 1, a: 1}
   - targetTemp: 0.8
     minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
+    maxHeight: 0
+    detailScale: 0
+    detailAmplitude: 0
+    biomeWeightMultiplier: 5
     padding:
       x: 0
       y: 0
-    biomeColor: {r: 1, g: 0.57323545, b: 0, a: 0}
-  - targetTemp: 0.9
+    biomeColor: {r: 1, g: 1, b: 1, a: 1}
+  - targetTemp: 0
     minHeight: 0
-    maxHeight: 100
-    detailScale: 0.03
-    detailAmplitude: 1
-    biomeWeightMultiplier: 1
+    maxHeight: 0
+    detailScale: 0
+    detailAmplitude: 0
+    biomeWeightMultiplier: 5
     padding:
       x: 0
       y: 0
-    biomeColor: {r: 1, g: 0.99844617, b: 0.9858491, a: 0}
+    biomeColor: {r: 1, g: 1, b: 1, a: 1}

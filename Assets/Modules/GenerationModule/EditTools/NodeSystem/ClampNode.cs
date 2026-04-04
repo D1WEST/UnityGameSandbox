@@ -1,5 +1,6 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools.NodeSystem
 {
+    using System.Collections.Generic;
     using UnityEditor.Experimental.GraphView;
     public class ClampNode : VoxelNode
     {
@@ -13,12 +14,23 @@
             outputContainer.Add(GeneratePort(Direction.Output));
             RefreshPorts();
         }
-        public override string GetHLSL(ref int varCount, out string varName)
+        public override string GetHLSL(ref int varCount, out string varName, Dictionary<VoxelNode, string> cache)
         {
-            string cIn = GetInputHLSL(InputIn, ref varCount, out string nIn);
-            string cMin = GetInputHLSL(InputMin, ref varCount, out string nMin);
-            string cMax = GetInputHLSL(InputMax, ref varCount, out string nMax);
+            // 1. Проверка кэша
+            if (cache.TryGetValue(this, out varName)) return "";
+
+            // 2. Получаем ввод от портов, передавая cache дальше
+            string cIn = GetInputHLSL(InputIn, ref varCount, out string nIn, cache);
+            string cMin = GetInputHLSL(InputMin, ref varCount, out string nMin, cache);
+            string cMax = GetInputHLSL(InputMax, ref varCount, out string nMax, cache);
+
+            // 3. Создаем уникальное имя переменной
             varName = $"clamp_{varCount++}";
+
+            // 4. Регистрируем в кэше
+            cache.Add(this, varName);
+
+            // 5. Формируем HLSL код
             return cIn + cMin + cMax + $"float {varName} = clamp({nIn}, {nMin}, {nMax});\n";
         }
     }

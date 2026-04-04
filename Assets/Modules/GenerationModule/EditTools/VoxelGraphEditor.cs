@@ -1,25 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
-using Assets.Modules.GenerationModule.EditTools.NodeSystem;
-using System.IO;
-using System.Linq;
-using UnityEditor;
-using UnityEditor.Experimental.GraphView;
-using UnityEditor.UIElements;
-using UnityEngine;
-using UnityEngine.UIElements;
-
-namespace Assets.Modules.GenerationModule.EditTools
+﻿namespace Assets.Modules.GenerationModule.EditTools
 {
+    using Assets.Modules.GenerationModule.EditTools.NodeSystem;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Linq;
+    using UnityEditor;
+    using UnityEditor.Experimental.GraphView;
+    using UnityEditor.UIElements;
+    using UnityEngine;
+    using UnityEngine.UIElements;
+
     public class VoxelGraphEditor : EditorWindow
     {
         private WorldGraphView _graphView;
         private VoxelGraphData _currentAsset;
         private ObjectField _assetSelector;
-
-        private VisualElement _previewContainer;
-        private Image _previewImage;
-        private Texture2D _previewTexture;
 
         [MenuItem("Window/Voxel Magic Editor")]
         public static void Open() => GetWindow<VoxelGraphEditor>("Voxel Graph");
@@ -34,52 +30,125 @@ namespace Assets.Modules.GenerationModule.EditTools
         private void GenerateToolbar()
         {
             var toolbar = new Toolbar();
-
             _assetSelector = new ObjectField("Graph Asset") { objectType = typeof(VoxelGraphData) };
             _assetSelector.RegisterValueChangedCallback(evt => {
                 _currentAsset = (VoxelGraphData)evt.newValue;
                 if (_currentAsset != null) Load();
             });
             toolbar.Add(_assetSelector);
-
             toolbar.Add(new Button(Save) { text = "Save Graph" });
-            toolbar.Add(new Button(Compile)
-            {
-                text = "COMPILE SHADER",
-                style = {
-                    backgroundColor = new Color(0.2f, 0.6f, 0.2f),
-                    color = Color.white 
-                }
-            });
-            toolbar.Add(new Button(UpdatePreview) { text = "Update Preview" });
-
+            toolbar.Add(new Button(Compile) { text = "COMPILE SHADER", style = { backgroundColor = new Color(0.2f, 0.5f, 0.2f), color = Color.white } });
             rootVisualElement.Add(toolbar);
+        }
+
+        private void Compile()
+        {
+            var outputNode = _graphView.nodes.ToList().OfType<OutputNode>().FirstOrDefault();
+            if (outputNode == null) return;
+
+            int varCount = 0;
+            var cache = new Dictionary<VoxelNode, string>();
+
+            // Генерируем селектор
+            string selCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
+            if (selVar == "0.0f") selVar = "0.5f";
+
+            List<string> biomeBlocks = new List<string>();
+            foreach (var port in outputNode.BiomePorts)
+            {
+                var conn = port.connections.FirstOrDefault();
+                if (conn == null) continue;
+                var bNode = conn.output.node as BiomeNode;
+
+                string dCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out string dVar, cache);
+                string cCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string cVar, cache);
+                if (cVar == "0.0f") cVar = "float4(1,1,1,1)";
+
+                string tStr = bNode.TargetTemp.ToString("F3", CultureInfo.InvariantCulture);
+                string wVar = $"weight_{varCount++}";
+
+                // УБРАНЫ ФИГУРНЫЕ СКОБКИ {}, чтобы переменные из кэша были видны всем
+                biomeBlocks.Add($@"
+        {dCode} {cCode}
+        float {wVar} = pow(saturate(1.0 - abs({selVar} - {tStr}) * 5.0), 2.0);
+        finalDensity += {dVar} * {wVar};
+        finalColor += {cVar} * {wVar};
+        totalW += {wVar};");
+            }
+
+            string sharedLogic = $"{selCode}\n" + string.Join("\n", biomeBlocks);
+
+            string densityFinal = $@"
+    float totalW = 0.0001f;
+    float finalDensity = 0;
+    float4 finalColor = 0;
+    {sharedLogic}
+    density = finalDensity / totalW;";
+
+            string colorFinal = $@"
+    float totalW = 0.0001f;
+    float finalDensity = 0;
+    float4 finalColor = 0;
+    {sharedLogic}
+    return finalColor / totalW;";
+
+            string shaderPath = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
+            string content = File.ReadAllText(shaderPath);
+            content = ReplaceTag(content, "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", densityFinal);
+            content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorFinal);
+
+            File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
+
+            var worldManager = FindObjectOfType<Assets.Modules.GenerationModule.WorldManager>();
+            if (worldManager != null && worldManager.worldProfile != null)
+            {
+                var biomeNodes = _graphView.nodes.ToList().OfType<BiomeNode>().OrderBy(b => b.TargetTemp).ToList();
+                var profileBiomes = new List<Assets.Modules.GenerationModule.Models.WestMM.BiomeData>();
+
+                foreach (var bNode in biomeNodes)
+                {
+                    profileBiomes.Add(new Assets.Modules.GenerationModule.Models.WestMM.BiomeData
+                    {
+                        targetTemp = bNode.TargetTemp,
+                        biomeColor = bNode.ColorValue,
+                        biomeWeightMultiplier = 5.0f // Убедись, что это число совпадает с Job
+                    });
+                }
+
+                worldManager.worldProfile.biomes = profileBiomes.ToArray();
+
+                // КРИТИЧЕСКИ ВАЖНО: помечаем объект как измененный и сохраняем ассеты
+                EditorUtility.SetDirty(worldManager.worldProfile);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"<color=green>WorldProfile Updated: {profileBiomes.Count} biomes synced.</color>");
+            }
+        }
+
+        private string ReplaceTag(string text, string start, string end, string newText)
+        {
+            int s = text.IndexOf(start);
+            int e = text.IndexOf(end);
+            if (s == -1 || e == -1) return text;
+            return text.Substring(0, s + start.Length) + "\n" + newText + "\n    " + text.Substring(e);
         }
 
         private void Save()
         {
-            if (_currentAsset == null)
-            {
-                EditorUtility.DisplayDialog("Voxel Editor", "Please select a Graph Asset first!", "OK");
-                return;
-            }
-
+            if (_currentAsset == null) return;
             _currentAsset.Nodes.Clear();
             _currentAsset.Edges.Clear();
-
-            // Сохраняем ноды
             foreach (var node in _graphView.nodes.ToList().Cast<VoxelNode>())
             {
-                _currentAsset.Nodes.Add(new NodeSerializedData
+                var nData = new NodeSerializedData
                 {
                     GUID = node.GUID,
-                    Type = node.GetType().AssemblyQualifiedName, // Используем полное имя типа
+                    Type = node.GetType().AssemblyQualifiedName,
                     Position = node.GetPosition().position,
-                    Data = SerializeNodeData(node)
-                });
+                    Data = SerializeNodeData(node),
+                    PortCount = node is OutputNode o ? o.BiomePorts.Count : 0
+                };
+                _currentAsset.Nodes.Add(nData);
             }
-
-            // Сохраняем связи
             foreach (var edge in _graphView.edges.ToList())
             {
                 _currentAsset.Edges.Add(new EdgeSerializedData
@@ -90,176 +159,96 @@ namespace Assets.Modules.GenerationModule.EditTools
                     InputPortName = edge.input.portName
                 });
             }
-
             EditorUtility.SetDirty(_currentAsset);
             AssetDatabase.SaveAssets();
-            Debug.Log("<color=green>Voxel Graph Saved Successfully!</color>");
         }
 
         private void Load()
         {
             _graphView.graphElements.ForEach(e => _graphView.RemoveElement(e));
             if (_currentAsset == null) return;
-
             Dictionary<string, VoxelNode> nodeCache = new Dictionary<string, VoxelNode>();
-
-            // 1. Восстанавливаем ноды
             foreach (var nData in _currentAsset.Nodes)
             {
                 var type = System.Type.GetType(nData.Type);
                 if (type == null) continue;
-
                 var node = (VoxelNode)System.Activator.CreateInstance(type);
                 node.GUID = nData.GUID;
                 node.SetPosition(new Rect(nData.Position, Vector2.zero));
-                DeserializeNodeData(node, nData.Data);
-
+                if (node is OutputNode outNode) { for (int i = 0; i < nData.PortCount; i++) outNode.AddBiomeSlot(); }
                 _graphView.AddElement(node);
                 nodeCache.Add(node.GUID, node);
+                DeserializeNodeData(node, nData.Data);
+                node.RefreshUI();
+                _graphView.AddElement(node);
             }
-
-            // 2. Восстанавливаем связи
             foreach (var eData in _currentAsset.Edges)
             {
                 if (!nodeCache.ContainsKey(eData.OutputNodeGUID) || !nodeCache.ContainsKey(eData.InputNodeGUID)) continue;
-
-                var outNode = nodeCache[eData.OutputNodeGUID];
-                var inNode = nodeCache[eData.InputNodeGUID];
-
-                var outPort = outNode.outputContainer.Query<Port>().ToList().FirstOrDefault(p => p.portName == eData.OutputPortName);
-                var inPort = inNode.inputContainer.Query<Port>().ToList().FirstOrDefault(p => p.portName == eData.InputPortName);
-
-                if (outPort != null && inPort != null)
-                {
-                    var edge = outPort.ConnectTo(inPort);
-                    _graphView.AddElement(edge);
-                }
+                var outPort = nodeCache[eData.OutputNodeGUID].outputContainer.Query<Port>().ToList().FirstOrDefault(p => p.portName == eData.OutputPortName);
+                var inPort = nodeCache[eData.InputNodeGUID].inputContainer.Query<Port>().ToList().FirstOrDefault(p => p.portName == eData.InputPortName);
+                if (outPort != null && inPort != null) _graphView.AddElement(outPort.ConnectTo(inPort));
             }
-        }
-
-        private void UpdatePreview()
-        {
-            int res = 128;
-            if (_previewTexture == null) _previewTexture = new Texture2D(res, res);
-            if (_previewImage == null)
-            {
-                _previewImage = new Image { style = { width = 200, height = 200, position = Position.Absolute, bottom = 10, right = 10, borderBottomWidth = 2, borderBottomColor = Color.white } };
-                rootVisualElement.Add(_previewImage);
-            }
-
-            // Здесь можно было бы сделать полноценный интерпретатор графа, 
-            // но для начала просто покажем шум первой ноды шума на графе
-            var noiseNode = _graphView.nodes.ToList().OfType<NoiseNode>().FirstOrDefault();
-            if (noiseNode != null)
-            {
-                for (int x = 0; x < res; x++)
-                {
-                    for (int z = 0; z < res; z++)
-                    {
-                        float v = Mathf.PerlinNoise(x * noiseNode.Scale, z * noiseNode.Scale);
-                        _previewTexture.SetPixel(x, z, new Color(v, v, v));
-                    }
-                }
-                _previewTexture.Apply();
-                _previewImage.image = _previewTexture;
-            }
-        }
-
-        private void Compile()
-        {
-            var outputNode = _graphView.nodes.ToList().OfType<OutputNode>().FirstOrDefault();
-            if (outputNode == null)
-            {
-                Debug.LogError("Output node not found!");
-                return;
-            }
-
-            int varCount = 0;
-            string finalVar;
-            string generatedCode = outputNode.GetHLSL(ref varCount, out finalVar);
-
-            // Важно: записываем в существующую переменную density из шейдера
-            string finalLine = $"\n    density = {finalVar};";
-
-            string path = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
-            if (!File.Exists(path)) { Debug.LogError("Shader not found at: " + path); return; }
-
-            string shaderContent = File.ReadAllText(path);
-            string startTag = "// [NODE_GRAPH_START]";
-            string endTag = "// [NODE_GRAPH_END]";
-
-            int startIdx = shaderContent.IndexOf(startTag);
-            int endIdx = shaderContent.IndexOf(endTag);
-
-            if (startIdx == -1 || endIdx == -1)
-            {
-                Debug.LogError("Tags // [NODE_GRAPH_START] or // [NODE_GRAPH_END] not found in shader!");
-                return;
-            }
-
-            string newContent = shaderContent.Substring(0, startIdx + startTag.Length) +
-                                "\n" + generatedCode + finalLine + "\n    " +
-                                shaderContent.Substring(endIdx);
-
-            // Запись без BOM (важно для шейдеров)
-            File.WriteAllText(path, newContent, new System.Text.UTF8Encoding(false));
-            AssetDatabase.ImportAsset(path);
-
-            Debug.Log("<color=cyan>Voxel Shader Compiled! Formula: " + finalVar + "</color>");
         }
 
         private string SerializeNodeData(VoxelNode node)
         {
-            var culture = CultureInfo.InvariantCulture;
-
-            if (node is NoiseNode noise)
-                return $"Noise|{noise.SelectedType}|{noise.Scale.ToString(culture)}";
-
-            if (node is ConstantNode constant)
-                return $"Const|{constant.Value.ToString(culture)}";
-
-            if (node is MathNode math)
-                return $"Math|{math.Operation}";
-
+            var c = CultureInfo.InvariantCulture;
+            if (node is NoiseNode n) return $"Noise|{n.SelectedType}|{n.Scale.ToString(c)}";
+            if (node is ConstantNode cn) return $"Const|{cn.Value.ToString(c)}";
+            if (node is MathNode m) return $"Math|{m.Operation}";
+            if (node is BiomeNode b) return $"Biome|{b.TargetTemp.ToString(c)}|{b.ColorValue.r.ToString(c)}|{b.ColorValue.g.ToString(c)}|{b.ColorValue.b.ToString(c)}";
+            if (node is ColorNode col) return $"Color|{col.Value.r.ToString(c)}|{col.Value.g.ToString(c)}|{col.Value.b.ToString(c)}";
+            if (node is OctaveNoiseNode oct) return $"Octave|{oct.SelectedType}|{oct.Octaves}|{oct.Persistence.ToString(c)}|{oct.Scale.ToString(c)}";
             return "None";
         }
 
         private void DeserializeNodeData(VoxelNode node, string data)
         {
             if (string.IsNullOrEmpty(data) || data == "None") return;
-
-            var parts = data.Split('|');
-            var culture = CultureInfo.InvariantCulture;
-
+            var p = data.Split('|');
+            var c = CultureInfo.InvariantCulture;
             try
             {
-                // Проверяем первый тег, чтобы точно знать, что мы читаем
-                if (parts[0] == "Noise" && node is NoiseNode noise)
+                if (p[0] == "Noise" && node is NoiseNode noise)
                 {
-                    noise.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), parts[1]);
-                    noise.Scale = float.Parse(parts[2], culture);
-
-                    // Обновляем визуальное поле в UI, если оно есть
-                    var field = noise.mainContainer.Query<FloatField>().First();
-                    if (field != null) field.value = noise.Scale;
+                    noise.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    noise.Scale = float.Parse(p[2], c);
+                    noise.RefreshUI(); // Вызываем метод обновления UI
                 }
-                else if (parts[0] == "Const" && node is ConstantNode constant)
+                else if (p[0] == "Const" && node is ConstantNode constant)
                 {
-                    constant.Value = float.Parse(parts[1], culture);
-
-                    var field = constant.mainContainer.Query<FloatField>().First();
-                    if (field != null) field.value = constant.Value;
+                    constant.Value = float.Parse(p[1], c);
+                    constant.RefreshUI();
                 }
-                else if (parts[0] == "Math" && node is MathNode math)
+                else if (p[0] == "Math" && node is MathNode math)
                 {
-                    var op = (MathType)System.Enum.Parse(typeof(MathType), parts[1]);
-                    math.SetOperation(op);
+                    math.SetOperation((MathType)System.Enum.Parse(typeof(MathType), p[1]));
+                }
+                else if (p[0] == "Biome" && node is BiomeNode biome)
+                {
+                    biome.TargetTemp = float.Parse(p[1], c);
+                    if (p.Length >= 5)
+                    {
+                        biome.ColorValue = new Color(float.Parse(p[2], c), float.Parse(p[3], c), float.Parse(p[4], c), 1f);
+                    }
+                    biome.RefreshUI();
+                }
+                else if (p[0] == "Color" && node is ColorNode col)
+                {
+                    col.Value = new Color(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c), 1f);
+                    col.RefreshUI();
+                }
+                else if (p[0] == "Octave" && node is OctaveNoiseNode oct)
+                {
+                    oct.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    oct.Octaves = int.Parse(p[2]);
+                    oct.Persistence = float.Parse(p[3], c);
+                    oct.Scale = float.Parse(p[4], c);
+                    oct.RefreshUI();
                 }
             }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"Could not load data for node {node.title}: {e.Message}. Using defaults.");
-            }
+            catch { }
         }
     }
 }
