@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5569d3aac50f7c54c838692a5652662e, type: 3}
+  m_Name: NewVoxelGraph
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.GenerationModule.EditTools.VoxelGraphData
+  Nodes:
+  - GUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 191, y: 220}
+    Data: None
+  - GUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 210, y: 458}
+    Data: Const|40
+  - GUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 405, y: 311}
+    Data: Math|Subtract
+  - GUID: 4e538892-83c3-41c1-b456-077f9445030f
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.NoiseNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 319, y: 38}
+    Data: Noise|Perlin|0.01
+  - GUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 618, y: 170}
+    Data: Math|Add
+  - GUID: 11f78906-edbd-4e8e-aa27-4f911babb3d4
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.OctaveNoiseNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 540, y: -115}
+    Data: None
+  - GUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 808, y: -192}
+    Data: Math|Multiply
+  - GUID: 89d0fff6-8a81-44ea-9057-d00a5330a8eb
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 669, y: -259}
+    Data: Const|14
+  - GUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 967, y: -79}
+    Data: Math|Add
+  - GUID: FINAL_OUTPUT
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.OutputNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 1167, y: -70}
+    Data: None
+  Edges:
+  - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
+    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    OutputPortName: Value
+    InputPortName: B
+  - OutputNodeGUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
+    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    OutputPortName: Y
+    InputPortName: A
+  - OutputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    InputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
+    OutputPortName: Out
+    InputPortName: B
+  - OutputNodeGUID: 4e538892-83c3-41c1-b456-077f9445030f
+    InputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
+    OutputPortName: Out
+    InputPortName: A
+  - OutputNodeGUID: 11f78906-edbd-4e8e-aa27-4f911babb3d4
+    InputNodeGUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
+    OutputPortName: Single
+    InputPortName: B
+  - OutputNodeGUID: 89d0fff6-8a81-44ea-9057-d00a5330a8eb
+    InputNodeGUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
+    OutputPortName: Value
+    InputPortName: A
+  - OutputNodeGUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
+    InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
+    OutputPortName: Out
+    InputPortName: A
+  - OutputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
+    InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
+    OutputPortName: Out
+    InputPortName: B
+  - OutputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
+    InputNodeGUID: FINAL_OUTPUT
+    OutputPortName: Out
+    InputPortName: Density In
