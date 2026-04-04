@@ -274,9 +274,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c738fa8ca9fbbf64c8d1a98e8958611b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
-  brushRadius: 1
-  digPower: -1
-  buildPower: 1
+  brushRadius: 0.5
+  digPower: -2
+  buildPower: 2
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -956,9 +956,9 @@ MonoBehaviour:
   terrainSettings:
     seed: 1337
     minChunkY: -2
-    maxChunkY: 2
-    biomeScale: 0.001
-    oceanHeight: 15
+    maxChunkY: 4
+    biomeScale: 0.005
+    oceanHeight: 14
     plainsHeight: 35
     mountainHeight: 256
     detailScale: 0.1
