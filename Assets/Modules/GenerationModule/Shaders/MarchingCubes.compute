@@ -56,49 +56,45 @@ uint GetIndex(uint x, uint y, uint z)
 float4 GetBlendedColor(float3 worldPos)
 {
     // [NODE_COLOR_START]
-
-    float totalW = 0.0001f;
-    float finalDensity = 0;
-    float4 finalColor = 0;
-    float noise_0 = PerlinNoise(worldPos * 0.0010);
+float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; float noise_0 = PerlinNoise(worldPos * 0.0100);
+float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
 
 
-        float fbm_1 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0,0,0), uint(4), 2.0, 0.5000, 0.0);
-float math_2 = 14.0000f * fbm_1;
-float noise_3 = PerlinNoise(worldPos * 0.0100);
-float math_4 = 40.0000f - worldPos.y;
-float math_5 = noise_3 + math_4;
-float math_6 = math_2 + math_5;
+        float fbm_2 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0,0,0), uint(4), 2.0, 0.5000, 0.0);
+float math_3 = fbm_2 * 14.0000f;
+float noise_4 = PerlinNoise(worldPos * 0.0100);
+float math_5 = 40.0000f - worldPos.y;
+float math_6 = noise_4 + math_5;
+float math_7 = math_3 + math_6;
  
-        float weight_7 = pow(saturate(1.0 - abs(noise_0 - 0.000) * 5.0), 2.0);
-        finalDensity += math_6 * weight_7;
-        finalColor += float4(1.000, 0.000, 0.000, 1.0f) * weight_7;
-        totalW += weight_7;
-
-         
-        float weight_8 = pow(saturate(1.0 - abs(noise_0 - 0.200) * 5.0), 2.0);
-        finalDensity += math_6 * weight_8;
-        finalColor += float4(0.906, 0.522, 0.020, 1.0f) * weight_8;
+        float weight_8 = pow(saturate(1.0 - abs(clamp_1 - 0.200) * 5.0), 2.0);
+        finalDensity += math_7 * weight_8;
+        finalColor += float4(1.000, 0.000, 0.000, 1.0f) * weight_8;
         totalW += weight_8;
 
          
-        float weight_9 = pow(saturate(1.0 - abs(noise_0 - 0.400) * 5.0), 2.0);
-        finalDensity += math_6 * weight_9;
-        finalColor += float4(0.973, 1.000, 0.000, 1.0f) * weight_9;
+        float weight_9 = pow(saturate(1.0 - abs(clamp_1 - 0.400) * 5.0), 2.0);
+        finalDensity += math_7 * weight_9;
+        finalColor += float4(0.906, 0.522, 0.020, 1.0f) * weight_9;
         totalW += weight_9;
 
          
-        float weight_10 = pow(saturate(1.0 - abs(noise_0 - 0.600) * 5.0), 2.0);
-        finalDensity += math_6 * weight_10;
-        finalColor += float4(0.000, 1.000, 0.071, 1.0f) * weight_10;
+        float weight_10 = pow(saturate(1.0 - abs(clamp_1 - 0.600) * 5.0), 2.0);
+        finalDensity += math_7 * weight_10;
+        finalColor += float4(0.973, 1.000, 0.000, 1.0f) * weight_10;
         totalW += weight_10;
 
          
-        float weight_11 = pow(saturate(1.0 - abs(noise_0 - 0.800) * 5.0), 2.0);
-        finalDensity += math_6 * weight_11;
-        finalColor += float4(0.000, 0.851, 1.000, 1.0f) * weight_11;
+        float weight_11 = pow(saturate(1.0 - abs(clamp_1 - 0.800) * 5.0), 2.0);
+        finalDensity += math_7 * weight_11;
+        finalColor += float4(0.000, 1.000, 0.071, 1.0f) * weight_11;
         totalW += weight_11;
-    return finalColor / totalW;
+
+         
+        float weight_12 = pow(saturate(1.0 - abs(clamp_1 - 1.000) * 5.0), 2.0);
+        finalDensity += math_7 * weight_12;
+        finalColor += float4(0.000, 0.851, 1.000, 1.0f) * weight_12;
+        totalW += weight_12; return finalColor / totalW;
     // [NODE_COLOR_END]
     
 }
@@ -124,49 +120,45 @@ void GenerateDensity(uint3 id : SV_DispatchThreadID)
     float density = 0;
 
     // [NODE_GRAPH_START]
-
-    float totalW = 0.0001f;
-    float finalDensity = 0;
-    float4 finalColor = 0;
-    float noise_0 = PerlinNoise(worldPos * 0.0010);
+float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; float noise_0 = PerlinNoise(worldPos * 0.0100);
+float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
 
 
-        float fbm_1 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0,0,0), uint(4), 2.0, 0.5000, 0.0);
-float math_2 = 14.0000f * fbm_1;
-float noise_3 = PerlinNoise(worldPos * 0.0100);
-float math_4 = 40.0000f - worldPos.y;
-float math_5 = noise_3 + math_4;
-float math_6 = math_2 + math_5;
+        float fbm_2 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0,0,0), uint(4), 2.0, 0.5000, 0.0);
+float math_3 = fbm_2 * 14.0000f;
+float noise_4 = PerlinNoise(worldPos * 0.0100);
+float math_5 = 40.0000f - worldPos.y;
+float math_6 = noise_4 + math_5;
+float math_7 = math_3 + math_6;
  
-        float weight_7 = pow(saturate(1.0 - abs(noise_0 - 0.000) * 5.0), 2.0);
-        finalDensity += math_6 * weight_7;
-        finalColor += float4(1.000, 0.000, 0.000, 1.0f) * weight_7;
-        totalW += weight_7;
-
-         
-        float weight_8 = pow(saturate(1.0 - abs(noise_0 - 0.200) * 5.0), 2.0);
-        finalDensity += math_6 * weight_8;
-        finalColor += float4(0.906, 0.522, 0.020, 1.0f) * weight_8;
+        float weight_8 = pow(saturate(1.0 - abs(clamp_1 - 0.200) * 5.0), 2.0);
+        finalDensity += math_7 * weight_8;
+        finalColor += float4(1.000, 0.000, 0.000, 1.0f) * weight_8;
         totalW += weight_8;
 
          
-        float weight_9 = pow(saturate(1.0 - abs(noise_0 - 0.400) * 5.0), 2.0);
-        finalDensity += math_6 * weight_9;
-        finalColor += float4(0.973, 1.000, 0.000, 1.0f) * weight_9;
+        float weight_9 = pow(saturate(1.0 - abs(clamp_1 - 0.400) * 5.0), 2.0);
+        finalDensity += math_7 * weight_9;
+        finalColor += float4(0.906, 0.522, 0.020, 1.0f) * weight_9;
         totalW += weight_9;
 
          
-        float weight_10 = pow(saturate(1.0 - abs(noise_0 - 0.600) * 5.0), 2.0);
-        finalDensity += math_6 * weight_10;
-        finalColor += float4(0.000, 1.000, 0.071, 1.0f) * weight_10;
+        float weight_10 = pow(saturate(1.0 - abs(clamp_1 - 0.600) * 5.0), 2.0);
+        finalDensity += math_7 * weight_10;
+        finalColor += float4(0.973, 1.000, 0.000, 1.0f) * weight_10;
         totalW += weight_10;
 
          
-        float weight_11 = pow(saturate(1.0 - abs(noise_0 - 0.800) * 5.0), 2.0);
-        finalDensity += math_6 * weight_11;
-        finalColor += float4(0.000, 0.851, 1.000, 1.0f) * weight_11;
+        float weight_11 = pow(saturate(1.0 - abs(clamp_1 - 0.800) * 5.0), 2.0);
+        finalDensity += math_7 * weight_11;
+        finalColor += float4(0.000, 1.000, 0.071, 1.0f) * weight_11;
         totalW += weight_11;
-    density = finalDensity / totalW;
+
+         
+        float weight_12 = pow(saturate(1.0 - abs(clamp_1 - 1.000) * 5.0), 2.0);
+        finalDensity += math_7 * weight_12;
+        finalColor += float4(0.000, 0.851, 1.000, 1.0f) * weight_12;
+        totalW += weight_12; density = finalDensity / totalW;
     // [NODE_GRAPH_END]
     
     float hM = smoothstep(_HubThreshold, _HubThreshold + 0.05, SimplexNoise(worldPos * _HubScale + _Seed));
