@@ -25,6 +25,10 @@ Shader "Custom/VoxelTriplanar"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            
+            // ����� ��� UNITY 6: �������� ��������� ������
+            #pragma multi_compile_fog
+
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "NoiseCommon.hlsl"
@@ -32,7 +36,14 @@ Shader "Custom/VoxelTriplanar"
             #include "PerlinNoise3D.hlsl"
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
-            struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; };
+            
+            struct Varyings { 
+                float4 positionCS : SV_POSITION; 
+                float3 positionWS : TEXCOORD0; 
+                float3 normalWS : TEXCOORD1; 
+                // ������ ��� �������� ������ ������
+                float fogFactor : TEXCOORD3;
+            };
 
             // [GENERATED_SAMPLERS_START]
             sampler2D _Tex0; float _Scale0;
@@ -48,6 +59,10 @@ Shader "Custom/VoxelTriplanar"
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                
+                // ���������� ������ (�� ������ �������)
+                output.fogFactor = ComputeFogFactor(output.positionCS.z);
+                
                 return output;
             }
 
@@ -162,7 +177,13 @@ float clamp_1 = clamp(noise_0, 0.0000f, 1.0000f);
 
                 float3 lightDir = _MainLightPosition.xyz;
                 float light = saturate(dot(normal, lightDir)) * 0.8 + 0.2;
-                return half4(finalColor * light, 1.0);
+                
+                float3 result = finalColor * light;
+
+                // ���������� ������ (���������� ��������� ����� � ������ ������ �� Volume)
+                result = MixFog(result, input.fogFactor);
+
+                return half4(result, 1.0);
             }
             ENDHLSL
         }
