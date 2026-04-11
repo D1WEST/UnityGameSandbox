@@ -15,19 +15,11 @@ namespace Assets.Modules.GenerationModule.Impl
             worldManager = manager;
         }
 
-        // worldPoint - точка попадания Raycast
-        // normal - нормаль из RaycastHit
-        // radius - радиус кисти (например, 2)
-        // amount - сила (отрицательная для копания: -1f; положительная для стройки: 1f)
         public void ModifyTerrain(Vector3 worldPoint, Vector3 normal, float radius, float amount)
         {
-            // СЕКРЕТ №1: Избавляемся от пустого клика. 
-            // Сдвигаем точку немного ВНУТРЬ меша по нормали. 
-            // Если строим (amount > 0), сдвигаем НАРУЖУ (прибавляем нормаль).
             float offsetDir = amount < 0 ? -0.5f : 0.5f;
             Vector3 targetCenter = worldPoint + (normal * offsetDir);
 
-            // Переводим в целочисленные глобальные воксельные координаты
             int3 centerInt = new int3(
                 Mathf.RoundToInt(targetCenter.x),
                 Mathf.RoundToInt(targetCenter.y),
@@ -35,75 +27,83 @@ namespace Assets.Modules.GenerationModule.Impl
             );
 
             int r = Mathf.CeilToInt(radius);
+            // ОПТИМИЗАЦИЯ 1: Используем квадрат радиуса, чтобы не вычислять квадратный корень (math.distance) для каждого вокселя
+            float radiusSq = radius * radius;
 
-            // Храним чанки, которые мы задели, чтобы обновить их меши в конце
-            HashSet<Chunk> chunksToUpdate = new HashSet<Chunk>();
+            // ОПТИМИЗАЦИЯ 2: Находим глобальные границы нашей "кисти" (AABB)
+            int3 minPos = centerInt - new int3(r, r, r);
+            int3 maxPos = centerInt + new int3(r, r, r);
 
-            // Проходимся кубиком (или сферой) вокруг точки клика
-            for (int x = -r; x <= r; x++)
+            // Переводим эти границы в координаты чанков
+            int3 chunkSize = worldManager.chunkSize;
+            int3 minChunk = worldManager.WorldToChunkPos(minPos);
+            int3 maxChunk = worldManager.WorldToChunkPos(maxPos);
+
+            List<Chunk> chunksToUpdate = new List<Chunk>();
+
+            // ОПТИМИЗАЦИЯ 3: Проходимся ТОЛЬКО по тем чанкам, которые зацепила кисть (их максимум 1-8 штук)
+            for (int cx = minChunk.x; cx <= maxChunk.x; cx += chunkSize.x)
             {
-                for (int y = -r; y <= r; y++)
+                for (int cy = minChunk.y; cy <= maxChunk.y; cy += chunkSize.y)
                 {
-                    for (int z = -r; z <= r; z++)
+                    for (int cz = minChunk.z; cz <= maxChunk.z; cz += chunkSize.z)
                     {
-                        int3 globalPos = centerInt + new int3(x, y, z);
-
-                        // Делаем форму кисти сферической
-                        if (math.distance(centerInt, globalPos) <= radius)
-                        {
-
-                            // СЕКРЕТ №2: Решение проблемы "дырок" между чанками.
-                            // Так как у нас размер данных 17x17x17 (для чанка 16x16x16), 
-                            // один физический глобальный воксель может лежать на стыке 
-                            // и принадлежать СРАЗУ нескольким чанкам. 
-                            // Поэтому мы берем радиус захвата +1 чанк и проверяем соседей.
-
-                            ModifyVoxelInAllOverlappingChunks(globalPos, amount, chunksToUpdate);
-                        }
-                    }
-                }
-            }
-
-            // Запускаем перестроение мешей только у задетых чанков
-            foreach (Chunk chunk in chunksToUpdate)
-            {
-                chunk.UpdateMesh();
-            }
-        }
-
-        private void ModifyVoxelInAllOverlappingChunks(int3 globalPos, float amount, HashSet<Chunk> chunksToUpdate)
-        {
-            // Проходим соседей (радиус 1 вокруг точки), чтобы зацепить края 17х17х17
-            for (int ox = -1; ox <= 0; ox++)
-            {
-                for (int oy = -1; oy <= 0; oy++)
-                {
-                    for (int oz = -1; oz <= 0; oz++)
-                    {
-                        int3 checkPos = globalPos + new int3(ox * 16, oy * 16, oz * 16);
-                        Chunk chunk = worldManager.GetChunkAt(checkPos);
+                        int3 chunkWorldPos = new int3(cx, cy, cz);
+                        Chunk chunk = worldManager.GetChunkAt(chunkWorldPos);
 
                         if (chunk != null)
                         {
-                            int3 chunkWorldPos = worldManager.WorldToChunkPos(checkPos);
-                            int3 localPos = globalPos - chunkWorldPos;
-
+                            bool isModified = false;
                             ChunkData data = chunk.GetVoxelData();
-                            if (localPos.x >= 0 && localPos.x < data.Size.x &&
-                                localPos.y >= 0 && localPos.y < data.Size.y &&
-                                localPos.z >= 0 && localPos.z < data.Size.z)
-                            {
-                                float currentDensity = data.GetDensity(localPos);
-                                float newDensity = math.clamp(currentDensity + amount, -1f, 1f);
-                                data.SetDensity(localPos, newDensity);
-                                // !!! ВАЖНО: Сообщаем менеджеру, что данные чанка изменились
-                                worldManager.SaveChunkState(chunkWorldPos, data.GetNativeArray());
 
+                            // ОПТИМИЗАЦИЯ 4: Локальные границы. 
+                            // Находим, какую часть массива этого чанка нам нужно проверить.
+                            // Размер массива 17x17x17, поэтому границы от 0 до 16.
+                            int3 startLocal = math.max(new int3(0, 0, 0), minPos - chunkWorldPos);
+                            int3 endLocal = math.min(data.Size - new int3(1, 1, 1), maxPos - chunkWorldPos);
+
+                            // Цикл работает только в зоне кисти внутри конкретного чанка
+                            for (int lx = startLocal.x; lx <= endLocal.x; lx++)
+                            {
+                                for (int ly = startLocal.y; ly <= endLocal.y; ly++)
+                                {
+                                    for (int lz = startLocal.z; lz <= endLocal.z; lz++)
+                                    {
+                                        int3 localPos = new int3(lx, ly, lz);
+                                        int3 globalPos = chunkWorldPos + localPos;
+
+                                        // Проверяем, попадает ли воксель в сферу
+                                        if (math.distancesq(centerInt, globalPos) <= radiusSq)
+                                        {
+                                            float currentDensity = data.GetDensity(localPos);
+                                            float newDensity = math.clamp(currentDensity + amount, -1f, 1f);
+
+                                            // Если плотность реально изменилась (не пытаемся копать воздух)
+                                            if (math.abs(currentDensity - newDensity) > 0.001f)
+                                            {
+                                                data.SetDensity(localPos, newDensity);
+                                                isModified = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ОПТИМИЗАЦИЯ 5: Сохраняем состояние чанка ОДИН раз, если хоть что-то изменилось
+                            if (isModified)
+                            {
+                                worldManager.SaveChunkState(chunkWorldPos, data.GetNativeArray());
                                 chunksToUpdate.Add(chunk);
                             }
                         }
                     }
                 }
+            }
+
+            // Запускаем перестроение мешей
+            foreach (Chunk chunk in chunksToUpdate)
+            {
+                chunk.UpdateMesh();
             }
         }
     }
