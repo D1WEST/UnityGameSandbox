@@ -395,6 +395,7 @@
             if (node is ColorNode col) return $"Color|{col.Value.r.ToString(c)}|{col.Value.g.ToString(c)}|{col.Value.b.ToString(c)}";
             if (node is MakeVector3Node) return "MakeVec3";
             if (node is CoordinateNode coord) return $"Coord|{coord.X.ToString(c)}|{coord.Y.ToString(c)}|{coord.Z.ToString(c)}";
+            if (node is TextureSlotNode ts) return $"TexSlot|{ts.SelectedSlot}";
             return "None";
         }
 
@@ -452,6 +453,12 @@
                 {
                     col.Value = new Color(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c), 1f);
                     col.RefreshUI();
+                }
+                else if (p[0] == "TexSlot" && node is TextureSlotNode ts)
+                {
+                    // Превращаем строку обратно в Enum
+                    ts.SelectedSlot = (TextureSlotNode.SlotIndex)System.Enum.Parse(typeof(TextureSlotNode.SlotIndex), p[1]);
+                    ts.RefreshUI();
                 }
                 else if (p[0] == "Octave" && node is OctaveNoiseNode oct)
                 {

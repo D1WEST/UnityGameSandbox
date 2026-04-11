@@ -61,36 +61,6 @@ MonoBehaviour:
     Position: {x: 1241, y: 122}
     Data: Biome|0.2|1|0|0
     PortCount: 0
-  - GUID: 7b9ebf06-7def-4c25-b739-8bd03abf3760
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ColorNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 756, y: 323}
-    Data: Color|1|0|0
-    PortCount: 0
-  - GUID: dc5e92a4-34a0-4f87-8927-0ed1e8a08b85
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ColorNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 767, y: 511}
-    Data: Color|0.9058824|0.5215687|0.01960784
-    PortCount: 0
-  - GUID: cd47a2a2-64bb-4588-827c-623485d54eae
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ColorNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 767, y: 695}
-    Data: Color|0.9725491|1|0
-    PortCount: 0
-  - GUID: 84461f2b-2dea-487d-a5c9-18b2d2abfa22
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ColorNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 767, y: 843}
-    Data: Color|0|1|0.07058824
-    PortCount: 0
-  - GUID: f5400f35-642d-4e64-9542-dd76d62202d4
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ColorNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 767, y: 984}
-    Data: Color|0|0.8509805|1
-    PortCount: 0
   - GUID: 
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ClampNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
@@ -133,6 +103,30 @@ MonoBehaviour:
     Position: {x: -8, y: -358}
     Data: AdvNoise|Perlin|0.01|4|2|1.2|0|0|0
     PortCount: 0
+  - GUID: 884f03eb-7b39-4131-ba7a-2c716a112553
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureSlotNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 721, y: 646}
+    Data: TexSlot|Slot_1
+    PortCount: 0
+  - GUID: 8eba5644-93a2-489b-a10a-efe824f21ddb
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureSlotNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 721, y: 999}
+    Data: TexSlot|Slot_3
+    PortCount: 0
+  - GUID: 59ef24a1-b47d-41d6-8333-127c80e07e78
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureSlotNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 721, y: 808}
+    Data: TexSlot|Slot_2
+    PortCount: 0
+  - GUID: 1907696d-26d9-448c-b286-a680007b5186
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureSlotNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 719, y: 479}
+    Data: TexSlot|Slot_0
+    PortCount: 0
   Edges:
   - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
     InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
@@ -158,26 +152,6 @@ MonoBehaviour:
     InputNodeGUID: 5061120b-df08-48b8-af30-a7680bfe0b87
     OutputPortName: Out
     InputPortName: Density (float)
-  - OutputNodeGUID: 7b9ebf06-7def-4c25-b739-8bd03abf3760
-    InputNodeGUID: 2b4df234-e178-44bf-ae81-1119c1e56197
-    OutputPortName: RGBA
-    InputPortName: Color (float4)
-  - OutputNodeGUID: dc5e92a4-34a0-4f87-8927-0ed1e8a08b85
-    InputNodeGUID: e73380a0-0de2-44e1-b8ee-603be6b01037
-    OutputPortName: RGBA
-    InputPortName: Color (float4)
-  - OutputNodeGUID: cd47a2a2-64bb-4588-827c-623485d54eae
-    InputNodeGUID: a5516e40-0d22-4163-9e2f-0faae3249df0
-    OutputPortName: RGBA
-    InputPortName: Color (float4)
-  - OutputNodeGUID: 84461f2b-2dea-487d-a5c9-18b2d2abfa22
-    InputNodeGUID: 1802efb6-ce6f-46ff-889a-74ed188ada08
-    OutputPortName: RGBA
-    InputPortName: Color (float4)
-  - OutputNodeGUID: f5400f35-642d-4e64-9542-dd76d62202d4
-    InputNodeGUID: 5061120b-df08-48b8-af30-a7680bfe0b87
-    OutputPortName: RGBA
-    InputPortName: Color (float4)
   - OutputNodeGUID: 5061120b-df08-48b8-af30-a7680bfe0b87
     InputNodeGUID: FINAL_OUTPUT
     OutputPortName: Biome Link
@@ -226,4 +200,24 @@ MonoBehaviour:
     InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
     OutputPortName: Single
     InputPortName: A
+  - OutputNodeGUID: 1907696d-26d9-448c-b286-a680007b5186
+    InputNodeGUID: 2b4df234-e178-44bf-ae81-1119c1e56197
+    OutputPortName: Weights (float4)
+    InputPortName: Color (float4)
+  - OutputNodeGUID: 884f03eb-7b39-4131-ba7a-2c716a112553
+    InputNodeGUID: e73380a0-0de2-44e1-b8ee-603be6b01037
+    OutputPortName: Weights (float4)
+    InputPortName: Color (float4)
+  - OutputNodeGUID: 59ef24a1-b47d-41d6-8333-127c80e07e78
+    InputNodeGUID: a5516e40-0d22-4163-9e2f-0faae3249df0
+    OutputPortName: Weights (float4)
+    InputPortName: Color (float4)
+  - OutputNodeGUID: 8eba5644-93a2-489b-a10a-efe824f21ddb
+    InputNodeGUID: 1802efb6-ce6f-46ff-889a-74ed188ada08
+    OutputPortName: Weights (float4)
+    InputPortName: Color (float4)
+  - OutputNodeGUID: 8eba5644-93a2-489b-a10a-efe824f21ddb
+    InputNodeGUID: 5061120b-df08-48b8-af30-a7680bfe0b87
+    OutputPortName: Weights (float4)
+    InputPortName: Color (float4)
   selectorScale: 0.001

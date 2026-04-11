@@ -36,6 +36,9 @@
                 new SearchTreeEntry(new GUIContent("Color Picker")) { level = 2, userData = typeof(ColorNode) },
                 new SearchTreeEntry(new GUIContent("Mix Colors")) { level = 2, userData = typeof(LerpColorNode) },
 
+                new SearchTreeGroupEntry(new GUIContent("Textures"), 1),
+                new SearchTreeEntry(new GUIContent("Texture Slot")) { level = 2, userData = typeof(TextureSlotNode) },
+
                 // РАЗДЕЛ: МАТЕМАТИКА
                 new SearchTreeGroupEntry(new GUIContent("Math"), 1),
                 new SearchTreeEntry(new GUIContent("Add (+)")) { level = 2, userData = MathType.Add },

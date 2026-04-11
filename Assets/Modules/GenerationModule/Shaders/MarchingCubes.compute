@@ -49,31 +49,31 @@ float math_4 = adv_noise_2 + math_3;
  
         float weight_5 = pow(saturate(1.0 - abs(clamp_1 - 0.200) * 5.0), 2.0);
         finalDensity += math_4 * weight_5;
-        finalColor += float4(1.000, 0.000, 0.000, 1.0f) * weight_5;
+        finalColor += float4(1,0,0,0) * weight_5;
         totalW += weight_5;
 
          
         float weight_6 = pow(saturate(1.0 - abs(clamp_1 - 0.400) * 5.0), 2.0);
         finalDensity += math_4 * weight_6;
-        finalColor += float4(0.906, 0.522, 0.020, 1.0f) * weight_6;
+        finalColor += float4(0,1,0,0) * weight_6;
         totalW += weight_6;
 
          
         float weight_7 = pow(saturate(1.0 - abs(clamp_1 - 0.600) * 5.0), 2.0);
         finalDensity += math_4 * weight_7;
-        finalColor += float4(0.973, 1.000, 0.000, 1.0f) * weight_7;
+        finalColor += float4(0,0,1,0) * weight_7;
         totalW += weight_7;
 
          
         float weight_8 = pow(saturate(1.0 - abs(clamp_1 - 0.800) * 5.0), 2.0);
         finalDensity += math_4 * weight_8;
-        finalColor += float4(0.000, 1.000, 0.071, 1.0f) * weight_8;
+        finalColor += float4(0,0,0,1) * weight_8;
         totalW += weight_8;
 
          
         float weight_9 = pow(saturate(1.0 - abs(clamp_1 - 1.000) * 5.0), 2.0);
         finalDensity += math_4 * weight_9;
-        finalColor += float4(0.000, 0.851, 1.000, 1.0f) * weight_9;
+        finalColor += float4(0,0,0,1) * weight_9;
         totalW += weight_9; return finalColor / totalW;
     // [NODE_COLOR_END]
     
@@ -110,31 +110,31 @@ float math_4 = adv_noise_2 + math_3;
  
         float weight_5 = pow(saturate(1.0 - abs(clamp_1 - 0.200) * 5.0), 2.0);
         finalDensity += math_4 * weight_5;
-        finalColor += float4(1.000, 0.000, 0.000, 1.0f) * weight_5;
+        finalColor += float4(1,0,0,0) * weight_5;
         totalW += weight_5;
 
          
         float weight_6 = pow(saturate(1.0 - abs(clamp_1 - 0.400) * 5.0), 2.0);
         finalDensity += math_4 * weight_6;
-        finalColor += float4(0.906, 0.522, 0.020, 1.0f) * weight_6;
+        finalColor += float4(0,1,0,0) * weight_6;
         totalW += weight_6;
 
          
         float weight_7 = pow(saturate(1.0 - abs(clamp_1 - 0.600) * 5.0), 2.0);
         finalDensity += math_4 * weight_7;
-        finalColor += float4(0.973, 1.000, 0.000, 1.0f) * weight_7;
+        finalColor += float4(0,0,1,0) * weight_7;
         totalW += weight_7;
 
          
         float weight_8 = pow(saturate(1.0 - abs(clamp_1 - 0.800) * 5.0), 2.0);
         finalDensity += math_4 * weight_8;
-        finalColor += float4(0.000, 1.000, 0.071, 1.0f) * weight_8;
+        finalColor += float4(0,0,0,1) * weight_8;
         totalW += weight_8;
 
          
         float weight_9 = pow(saturate(1.0 - abs(clamp_1 - 1.000) * 5.0), 2.0);
         finalDensity += math_4 * weight_9;
-        finalColor += float4(0.000, 0.851, 1.000, 1.0f) * weight_9;
+        finalColor += float4(0,0,0,1) * weight_9;
         totalW += weight_9; density = finalDensity / totalW;
     // [NODE_GRAPH_END]
     
