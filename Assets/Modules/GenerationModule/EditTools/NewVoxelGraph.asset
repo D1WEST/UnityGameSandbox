@@ -103,35 +103,11 @@ MonoBehaviour:
     Position: {x: -8, y: -358}
     Data: AdvNoise|Perlin|0.01|4|0.5|2|0|0|0
     PortCount: 0
-  - GUID: 9ed4384e-6692-416a-94b3-1236c5b82972
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
-      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 684, y: 279}
-    Data: LayerMixer|{"GUID":"9ed4384e-6692-416a-94b3-1236c5b82972","Rules":[{"MinHeight":-100.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":0,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
-    PortCount: 0
   - GUID: 09bb892a-0250-4823-82f8-7546a1f82c41
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
       Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 684, y: 472}
-    Data: LayerMixer|{"GUID":"09bb892a-0250-4823-82f8-7546a1f82c41","Rules":[{"MinHeight":-100.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":1,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
-    PortCount: 0
-  - GUID: ac8bb20f-c8d5-4d02-9c00-794725179156
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
-      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 684, y: 667}
-    Data: LayerMixer|{"GUID":"ac8bb20f-c8d5-4d02-9c00-794725179156","Rules":[{"MinHeight":-100.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":2,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
-    PortCount: 0
-  - GUID: 17cb5f6e-3653-462d-90ba-150c7695a794
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
-      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 684, y: 854}
-    Data: LayerMixer|{"GUID":"17cb5f6e-3653-462d-90ba-150c7695a794","Rules":[{"MinHeight":-100.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
-    PortCount: 0
-  - GUID: af9c2b49-c71d-473f-986c-8cbbe32cd013
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
-      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 684, y: 1053}
-    Data: LayerMixer|{"GUID":"af9c2b49-c71d-473f-986c-8cbbe32cd013","Rules":[{"MinHeight":-100.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
+    Data: LayerMixer|{"GUID":"09bb892a-0250-4823-82f8-7546a1f82c41","Rules":[{"MinHeight":50.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":1,"NoiseInfluence":0.5},{"MinHeight":-100.0,"MaxHeight":50.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
     PortCount: 0
   - GUID: a4c46369-ea4c-47de-bcf4-affdfa3504e1
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
@@ -144,6 +120,30 @@ MonoBehaviour:
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 306, y: -141}
     Data: Const|25
+    PortCount: 0
+  - GUID: 9ed4384e-6692-416a-94b3-1236c5b82972
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
+      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 684, y: 237}
+    Data: LayerMixer|{"GUID":"9ed4384e-6692-416a-94b3-1236c5b82972","Rules":[{"MinHeight":50.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":0,"NoiseInfluence":0.5},{"MinHeight":-100.0,"MaxHeight":50.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
+    PortCount: 0
+  - GUID: ac8bb20f-c8d5-4d02-9c00-794725179156
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
+      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 684, y: 691}
+    Data: LayerMixer|{"GUID":"ac8bb20f-c8d5-4d02-9c00-794725179156","Rules":[{"MinHeight":50.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":2,"NoiseInfluence":0.5},{"MinHeight":-100.0,"MaxHeight":50.0,"Transition":5.0,"TextureSlot":2,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
+    PortCount: 0
+  - GUID: af9c2b49-c71d-473f-986c-8cbbe32cd013
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
+      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 684, y: 1137}
+    Data: LayerMixer|{"GUID":"af9c2b49-c71d-473f-986c-8cbbe32cd013","Rules":[{"MinHeight":50.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5},{"MinHeight":-100.0,"MaxHeight":50.0,"Transition":5.0,"TextureSlot":0,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
+    PortCount: 0
+  - GUID: 17cb5f6e-3653-462d-90ba-150c7695a794
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
+      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 684, y: 918}
+    Data: LayerMixer|{"GUID":"17cb5f6e-3653-462d-90ba-150c7695a794","Rules":[{"MinHeight":50.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5},{"MinHeight":-100.0,"MaxHeight":50.0,"Transition":5.0,"TextureSlot":1,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
     PortCount: 0
   Edges:
   - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba

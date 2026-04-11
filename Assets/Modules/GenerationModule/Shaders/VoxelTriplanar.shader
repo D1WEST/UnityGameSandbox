@@ -75,77 +75,87 @@ float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
     {
         float mixNoise_4 = SimplexNoise(worldPos * 0.0500);
     float4 texWeights_3 = float4(0,0,0,0);
-    float w_5 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_4*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_4*0.50));
+    float w_5 = saturate(smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_4*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_4*0.50));
     texWeights_3.r += w_5;
+    float w_6 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_4*0.50)) * saturate(1.0 - smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_4*0.50));
+    texWeights_3.a += w_6;
     texWeights_3 /= max(0.0001, texWeights_3.r + texWeights_3.g + texWeights_3.b + texWeights_3.a);
 
-        float bw_6 = pow(saturate(1.0 - abs(nSel_2 - 0.200) * 4.0), 2.0);
+        float bw_7 = pow(saturate(1.0 - abs(nSel_2 - 0.200) * 4.0), 2.0);
         float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_3.r +
                     GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_3.g +
                     GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_3.b +
                     GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_3.a);
-        finalColor += c * bw_6;
-        totalW += bw_6;
+        finalColor += c * bw_7;
+        totalW += bw_7;
     }
     {
-        float mixNoise_8 = SimplexNoise(worldPos * 0.0500);
-    float4 texWeights_7 = float4(0,0,0,0);
-    float w_9 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_8*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_8*0.50));
-    texWeights_7.g += w_9;
-    texWeights_7 /= max(0.0001, texWeights_7.r + texWeights_7.g + texWeights_7.b + texWeights_7.a);
+        float mixNoise_9 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_8 = float4(0,0,0,0);
+    float w_10 = saturate(smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_9*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_9*0.50));
+    texWeights_8.g += w_10;
+    float w_11 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_9*0.50)) * saturate(1.0 - smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_9*0.50));
+    texWeights_8.a += w_11;
+    texWeights_8 /= max(0.0001, texWeights_8.r + texWeights_8.g + texWeights_8.b + texWeights_8.a);
 
-        float bw_10 = pow(saturate(1.0 - abs(nSel_2 - 0.400) * 4.0), 2.0);
-        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_7.r +
-                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_7.g +
-                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_7.b +
-                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_7.a);
-        finalColor += c * bw_10;
-        totalW += bw_10;
+        float bw_12 = pow(saturate(1.0 - abs(nSel_2 - 0.400) * 4.0), 2.0);
+        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_8.r +
+                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_8.g +
+                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_8.b +
+                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_8.a);
+        finalColor += c * bw_12;
+        totalW += bw_12;
     }
     {
-        float mixNoise_12 = SimplexNoise(worldPos * 0.0500);
-    float4 texWeights_11 = float4(0,0,0,0);
-    float w_13 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_12*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_12*0.50));
-    texWeights_11.b += w_13;
-    texWeights_11 /= max(0.0001, texWeights_11.r + texWeights_11.g + texWeights_11.b + texWeights_11.a);
+        float mixNoise_14 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_13 = float4(0,0,0,0);
+    float w_15 = saturate(smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_14*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_14*0.50));
+    texWeights_13.b += w_15;
+    float w_16 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_14*0.50)) * saturate(1.0 - smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_14*0.50));
+    texWeights_13.b += w_16;
+    texWeights_13 /= max(0.0001, texWeights_13.r + texWeights_13.g + texWeights_13.b + texWeights_13.a);
 
-        float bw_14 = pow(saturate(1.0 - abs(nSel_2 - 0.600) * 4.0), 2.0);
-        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_11.r +
-                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_11.g +
-                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_11.b +
-                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_11.a);
-        finalColor += c * bw_14;
-        totalW += bw_14;
+        float bw_17 = pow(saturate(1.0 - abs(nSel_2 - 0.600) * 4.0), 2.0);
+        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_13.r +
+                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_13.g +
+                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_13.b +
+                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_13.a);
+        finalColor += c * bw_17;
+        totalW += bw_17;
     }
     {
-        float mixNoise_16 = SimplexNoise(worldPos * 0.0500);
-    float4 texWeights_15 = float4(0,0,0,0);
-    float w_17 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_16*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_16*0.50));
-    texWeights_15.a += w_17;
-    texWeights_15 /= max(0.0001, texWeights_15.r + texWeights_15.g + texWeights_15.b + texWeights_15.a);
+        float mixNoise_19 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_18 = float4(0,0,0,0);
+    float w_20 = saturate(smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_19*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_19*0.50));
+    texWeights_18.a += w_20;
+    float w_21 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_19*0.50)) * saturate(1.0 - smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_19*0.50));
+    texWeights_18.g += w_21;
+    texWeights_18 /= max(0.0001, texWeights_18.r + texWeights_18.g + texWeights_18.b + texWeights_18.a);
 
-        float bw_18 = pow(saturate(1.0 - abs(nSel_2 - 0.800) * 4.0), 2.0);
-        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_15.r +
-                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_15.g +
-                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_15.b +
-                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_15.a);
-        finalColor += c * bw_18;
-        totalW += bw_18;
-    }
-    {
-        float mixNoise_20 = SimplexNoise(worldPos * 0.0500);
-    float4 texWeights_19 = float4(0,0,0,0);
-    float w_21 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_20*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_20*0.50));
-    texWeights_19.a += w_21;
-    texWeights_19 /= max(0.0001, texWeights_19.r + texWeights_19.g + texWeights_19.b + texWeights_19.a);
-
-        float bw_22 = pow(saturate(1.0 - abs(nSel_2 - 1.000) * 4.0), 2.0);
-        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_19.r +
-                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_19.g +
-                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_19.b +
-                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_19.a);
+        float bw_22 = pow(saturate(1.0 - abs(nSel_2 - 0.800) * 4.0), 2.0);
+        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_18.r +
+                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_18.g +
+                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_18.b +
+                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_18.a);
         finalColor += c * bw_22;
         totalW += bw_22;
+    }
+    {
+        float mixNoise_24 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_23 = float4(0,0,0,0);
+    float w_25 = saturate(smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_24*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_24*0.50));
+    texWeights_23.a += w_25;
+    float w_26 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_24*0.50)) * saturate(1.0 - smoothstep(50.00-5.00, 50.00+5.00, worldPos.y + mixNoise_24*0.50));
+    texWeights_23.r += w_26;
+    texWeights_23 /= max(0.0001, texWeights_23.r + texWeights_23.g + texWeights_23.b + texWeights_23.a);
+
+        float bw_27 = pow(saturate(1.0 - abs(nSel_2 - 1.000) * 4.0), 2.0);
+        float3 c = (GetTriplanar(_Tex0, worldPos, normal, _Scale0) * texWeights_23.r +
+                    GetTriplanar(_Tex1, worldPos, normal, _Scale1) * texWeights_23.g +
+                    GetTriplanar(_Tex2, worldPos, normal, _Scale2) * texWeights_23.b +
+                    GetTriplanar(_Tex3, worldPos, normal, _Scale3) * texWeights_23.a);
+        finalColor += c * bw_27;
+        totalW += bw_27;
     }
     finalColor /= totalW;
     // [GENERATED_BIOME_LOGIC_END]
