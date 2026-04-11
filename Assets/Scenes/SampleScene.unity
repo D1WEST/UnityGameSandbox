@@ -150,7 +150,7 @@ Transform:
   m_GameObject: {fileID: 208961341}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 30, z: 0}
+  m_LocalPosition: {x: 0, y: 113.3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -948,7 +948,6 @@ MonoBehaviour:
   chunkPrefab: {fileID: 662446737174614774, guid: a73db11a714ea9742a29ad8d2b0a159d, type: 3}
   player: {fileID: 208961342}
   marchingCubesShader: {fileID: 7200000, guid: 63f6feef258bf9142a8d96f4e94342bd, type: 3}
-  worldProfile: {fileID: 11400000, guid: 7c9d0aeff9ccd914abb7b27dade8dcdb, type: 2}
   graphData: {fileID: 11400000, guid: 5d1d0109f08e1da4586668f78753f5b3, type: 2}
   chunkSize:
     x: 16
@@ -958,14 +957,8 @@ MonoBehaviour:
   chunksPerFrame: 2
   terrainSettings:
     seed: 1337
-    minChunkY: -2
+    minChunkY: -4
     maxChunkY: 4
-    biomeScale: 0.005
-    oceanHeight: 14
-    plainsHeight: 35
-    mountainHeight: 256
-    detailScale: 0.1
-    detailAmplitude: 1.2
     hubScale: 0.03
     hubThreshold: 0.4
     branchScale: 0.01

@@ -37,41 +37,11 @@ MonoBehaviour:
     Position: {x: 1241, y: 843}
     Data: Biome|1|0|0.8509805|1
     PortCount: 0
-  - GUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 403, y: -14}
-    Data: Math|Add
-    PortCount: 0
-  - GUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 717, y: -192}
-    Data: Math|Multiply
-    PortCount: 0
-  - GUID: 11f78906-edbd-4e8e-aa27-4f911babb3d4
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.OctaveNoiseNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 306, y: -244}
-    Data: Octave|4|4|0.5|0.01
-    PortCount: 0
-  - GUID: 4e538892-83c3-41c1-b456-077f9445030f
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.NoiseNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 14, y: -244}
-    Data: Noise|Perlin|0.01
-    PortCount: 0
   - GUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 14, y: -91}
     Data: Const|40
-    PortCount: 0
-  - GUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: -16, y: 37}
-    Data: None
     PortCount: 0
   - GUID: b671ef29-c8af-4a21-981d-6d97712c9208
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
@@ -127,12 +97,6 @@ MonoBehaviour:
     Position: {x: 1721, y: 53}
     Data: None
     PortCount: 0
-  - GUID: 89d0fff6-8a81-44ea-9057-d00a5330a8eb
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 541, y: -112}
-    Data: Const|14
-    PortCount: 0
   - GUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
@@ -157,38 +121,22 @@ MonoBehaviour:
     Position: {x: 1411, y: -92}
     Data: Noise|Perlin|0.01
     PortCount: 0
+  - GUID: 27093f2f-67e2-49e5-98db-76126307dfaf
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: -2, y: 87}
+    Data: None
+    PortCount: 0
+  - GUID: 6973b0f3-347e-448e-ab17-fc236dcf0006
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.AdvancedNoiseNode,
+      Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: -8, y: -358}
+    Data: AdvNoise|Perlin|0.01|4|2|1.2|0|0|0
+    PortCount: 0
   Edges:
-  - OutputNodeGUID: d5899bbd-bced-4bf2-bad3-ddbecdc25188
-    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
-    OutputPortName: Y
-    InputPortName: B
   - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
     InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
     OutputPortName: Value
-    InputPortName: A
-  - OutputNodeGUID: 4e538892-83c3-41c1-b456-077f9445030f
-    InputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
-    OutputPortName: Out
-    InputPortName: A
-  - OutputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
-    InputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
-    OutputPortName: Out
-    InputPortName: B
-  - OutputNodeGUID: 394314f8-2914-4c22-8a3e-1a09c90af93b
-    InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
-    OutputPortName: Out
-    InputPortName: B
-  - OutputNodeGUID: 11f78906-edbd-4e8e-aa27-4f911babb3d4
-    InputNodeGUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
-    OutputPortName: Single
-    InputPortName: A
-  - OutputNodeGUID: 89d0fff6-8a81-44ea-9057-d00a5330a8eb
-    InputNodeGUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
-    OutputPortName: Value
-    InputPortName: B
-  - OutputNodeGUID: 0aa81986-c5d7-49b6-b3e2-f621319f574c
-    InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
-    OutputPortName: Out
     InputPortName: A
   - OutputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
     InputNodeGUID: 2b4df234-e178-44bf-ae81-1119c1e56197
@@ -266,4 +214,16 @@ MonoBehaviour:
     InputNodeGUID: FINAL_OUTPUT
     OutputPortName: Single
     InputPortName: Biome Selector (0-1)
+  - OutputNodeGUID: 27093f2f-67e2-49e5-98db-76126307dfaf
+    InputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    OutputPortName: Y
+    InputPortName: B
+  - OutputNodeGUID: b671ef29-c8af-4a21-981d-6d97712c9208
+    InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
+    OutputPortName: Out
+    InputPortName: B
+  - OutputNodeGUID: 6973b0f3-347e-448e-ab17-fc236dcf0006
+    InputNodeGUID: baaa2f6c-d75e-4d69-af3f-611ac9726367
+    OutputPortName: Single
+    InputPortName: A
   selectorScale: 0.001

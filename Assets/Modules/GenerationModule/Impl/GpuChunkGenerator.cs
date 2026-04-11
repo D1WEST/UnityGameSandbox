@@ -139,6 +139,61 @@ namespace Assets.Modules.GenerationModule.Impl
             });
         }
 
+        public Mesh GenerateChunkSync(int3 size, int3 worldPos, VoxelGraphData graph, TerrainSettings globalSettings)
+        {
+            int3 actualSize = size + new int3(1, 1, 1);
+            int numPoints = actualSize.x * actualSize.y * actualSize.z;
+            int maxTriangles = (actualSize.x - 1) * (actualSize.y - 1) * (actualSize.z - 1) * 5;
+
+            ComputeBuffer densitiesBuffer = new ComputeBuffer(numPoints, sizeof(float));
+            ComputeBuffer trianglesBuffer = new ComputeBuffer(maxTriangles, 84, ComputeBufferType.Append);
+            trianglesBuffer.SetCounterValue(0);
+
+            computeShader.SetInts("ChunkSize", actualSize.x, actualSize.y, actualSize.z);
+            computeShader.SetInts("WorldOffset", worldPos.x, worldPos.y, worldPos.z);
+            computeShader.SetFloat("IsoLevel", 0f);
+            computeShader.SetFloat("_Seed", globalSettings.seed);
+
+            computeShader.SetFloat("_HubScale", globalSettings.hubScale);
+            computeShader.SetFloat("_HubThreshold", globalSettings.hubThreshold);
+            computeShader.SetFloat("_BranchScale", globalSettings.branchScale);
+            computeShader.SetFloat("_BranchThreshold", globalSettings.branchThreshold);
+
+            computeShader.SetBuffer(densityKernel, "Densities", densitiesBuffer);
+            int groupsX = Mathf.CeilToInt(actualSize.x / 4f);
+            int groupsY = Mathf.CeilToInt(actualSize.y / 4f);
+            int groupsZ = Mathf.CeilToInt(actualSize.z / 4f);
+            computeShader.Dispatch(densityKernel, groupsX, groupsY, groupsZ);
+
+            computeShader.SetBuffer(meshKernel, "Densities", densitiesBuffer);
+            computeShader.SetBuffer(meshKernel, "Triangles", trianglesBuffer);
+            computeShader.SetBuffer(meshKernel, "TriTable", triTableBuffer);
+            computeShader.SetBuffer(meshKernel, "EdgeVertices", edgeVerticesBuffer);
+            computeShader.SetBuffer(meshKernel, "Corners", cornersBuffer);
+            computeShader.Dispatch(meshKernel, groupsX, groupsY, groupsZ);
+
+            ComputeBuffer argsBuffer = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
+            ComputeBuffer.CopyCount(trianglesBuffer, argsBuffer, 0);
+
+            int[] args = new int[4];
+            argsBuffer.GetData(args);
+            int triCount = args[0];
+
+            Mesh mesh = null;
+            if (triCount > 0)
+            {
+                Triangle[] gpuTriangles = new Triangle[triCount];
+                trianglesBuffer.GetData(gpuTriangles, 0, 0, triCount);
+                mesh = BuildMesh(gpuTriangles, triCount);
+            }
+
+            densitiesBuffer.Release();
+            trianglesBuffer.Release();
+            argsBuffer.Release();
+
+            return mesh;
+        }
+
         private Mesh BuildMesh(Triangle[] triangles, int triCount)
         {
             Mesh mesh = new Mesh();

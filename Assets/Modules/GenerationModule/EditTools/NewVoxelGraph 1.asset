@@ -18,21 +18,25 @@ MonoBehaviour:
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 675, y: 539}
     Data: Math|Subtract
+    PortCount: 0
   - GUID: FINAL_OUTPUT
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.OutputNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 897, y: 539}
     Data: None
+    PortCount: 0
   - GUID: eb071d5e-e182-481c-85ed-7335697d89aa
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 454, y: 616}
     Data: None
+    PortCount: 0
   - GUID: 54811d71-42a3-4cce-9a22-11dd97bfaa4c
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 454, y: 443}
     Data: Const|20
+    PortCount: 0
   Edges:
   - OutputNodeGUID: 4643fd4e-ae5c-4793-87ed-f191c282dc06
     InputNodeGUID: FINAL_OUTPUT
@@ -46,3 +50,4 @@ MonoBehaviour:
     InputNodeGUID: 4643fd4e-ae5c-4793-87ed-f191c282dc06
     OutputPortName: Value
     InputPortName: A
+  selectorScale: 0.001

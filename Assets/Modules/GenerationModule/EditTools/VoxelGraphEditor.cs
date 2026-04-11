@@ -1,6 +1,8 @@
 ﻿namespace Assets.Modules.GenerationModule.EditTools
 {
     using Assets.Modules.GenerationModule.EditTools.NodeSystem;
+    using Assets.Modules.GenerationModule.Impl;
+    using Assets.Modules.GenerationModule.Models;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -18,6 +20,17 @@
         private VoxelGraphData _currentAsset;
         private ObjectField _assetSelector;
 
+        // --- PREVIEW VARIABLES ---
+        private PreviewRenderUtility _previewRenderUtility;
+        private Mesh _previewMesh;
+        private Material _previewMaterial;
+        private Texture2D _previewTexture2D;
+        private Vector2 _previewDragRotation = new Vector2(30, -45);
+        private int _previewRenderDistance = 6;
+        private Image _2dPreviewImage;
+        private IMGUIContainer _3dPreviewContainer;
+        private Vector3Int _previewChunkPos = new Vector3Int(0, 1, 0);
+
         [MenuItem("Window/Voxel Magic Editor")]
         public static void Open() => GetWindow<VoxelGraphEditor>("Voxel Graph");
 
@@ -26,6 +39,19 @@
             _graphView = new WorldGraphView(this);
             rootVisualElement.Add(_graphView);
             GenerateToolbar();
+            SetupPreviewPanel(); // Создаем панель превью
+        }
+
+        private void OnDisable()
+        {
+            if (_previewRenderUtility != null)
+            {
+                _previewRenderUtility.Cleanup();
+                _previewRenderUtility = null;
+            }
+            if (_previewMesh != null) DestroyImmediate(_previewMesh);
+            if (_previewTexture2D != null) DestroyImmediate(_previewTexture2D);
+            if (_previewMaterial != null) DestroyImmediate(_previewMaterial);
         }
 
         private void GenerateToolbar()
@@ -39,8 +65,193 @@
             toolbar.Add(_assetSelector);
             toolbar.Add(new Button(Save) { text = "Save Graph" });
             toolbar.Add(new Button(Compile) { text = "COMPILE SHADER", style = { backgroundColor = new Color(0.2f, 0.5f, 0.2f), color = Color.white } });
+
+            // Кнопка обновления превью
+            toolbar.Add(new Button(UpdatePreviews) { text = "UPDATE PREVIEWS", style = { backgroundColor = new Color(0.2f, 0.4f, 0.6f), color = Color.white } });
+
             rootVisualElement.Add(toolbar);
         }
+
+        private void SetupPreviewPanel()
+        {
+            var previewPanel = new VisualElement();
+            previewPanel.style.position = Position.Absolute;
+            previewPanel.style.right = 10;
+            previewPanel.style.bottom = 10;
+            previewPanel.style.width = 260;
+            previewPanel.style.backgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.9f);
+
+            previewPanel.style.borderTopWidth = previewPanel.style.borderBottomWidth = previewPanel.style.borderLeftWidth = previewPanel.style.borderRightWidth = 2;
+            var bColor = new StyleColor(new Color(0.3f, 0.3f, 0.3f));
+            previewPanel.style.borderTopColor = bColor;
+            previewPanel.style.borderBottomColor = bColor;
+            previewPanel.style.borderLeftColor = bColor;
+            previewPanel.style.borderRightColor = bColor;
+            previewPanel.style.paddingTop = previewPanel.style.paddingBottom = previewPanel.style.paddingLeft = previewPanel.style.paddingRight = 5;
+
+            var slider = new SliderInt("2D Render Dist", 2, 16);
+            slider.value = _previewRenderDistance;
+            slider.RegisterValueChangedCallback(evt => { _previewRenderDistance = evt.newValue; Update2DMap(); });
+            previewPanel.Add(slider);
+
+            // НОВОЕ: Поле для выбора чанка
+            var chunkPosField = new Vector3IntField("3D Chunk Pos");
+            chunkPosField.value = _previewChunkPos;
+            chunkPosField.RegisterValueChangedCallback(evt => { _previewChunkPos = evt.newValue; Update3DChunk(); });
+            previewPanel.Add(chunkPosField);
+
+            previewPanel.Add(new Label("2D Biome Map:") { style = { marginTop = 5, unityFontStyleAndWeight = FontStyle.Bold } });
+            _2dPreviewImage = new Image();
+            _2dPreviewImage.style.width = 250;
+            _2dPreviewImage.style.height = 250;
+            _2dPreviewImage.style.backgroundColor = Color.black;
+            previewPanel.Add(_2dPreviewImage);
+
+            previewPanel.Add(new Label("3D Chunk Preview:") { style = { marginTop = 10, unityFontStyleAndWeight = FontStyle.Bold } });
+            _3dPreviewContainer = new IMGUIContainer(Draw3DPreview);
+            _3dPreviewContainer.style.width = 250;
+            _3dPreviewContainer.style.height = 250;
+            _3dPreviewContainer.style.backgroundColor = new Color(0.1f, 0.1f, 0.1f);
+            previewPanel.Add(_3dPreviewContainer);
+
+            rootVisualElement.Add(previewPanel);
+
+            _previewRenderUtility = new PreviewRenderUtility();
+            _previewRenderUtility.camera.fieldOfView = 45f;
+            _previewRenderUtility.camera.nearClipPlane = 0.1f;
+            _previewRenderUtility.camera.farClipPlane = 1000f;
+            _previewRenderUtility.ambientColor = new Color(0.5f, 0.5f, 0.5f);
+            _previewRenderUtility.lights[0].transform.rotation = Quaternion.Euler(50, 50, 0);
+
+            // Используем стандартный шейдер (он отлично рисует Vertex Colors)
+            _previewMaterial = new Material(Shader.Find("Sprites/Default"));
+        }
+
+        private void UpdatePreviews()
+        {
+            if (_currentAsset == null) return;
+
+            // Обязательно сохраняем, чтобы в ассете были свежие BakedBiomes и скейл
+            Compile();
+
+            Update2DMap();
+            Update3DChunk();
+        }
+
+        private void Update2DMap()
+        {
+            int texSize = 128;
+            if (_previewTexture2D == null)
+            {
+                _previewTexture2D = new Texture2D(texSize, texSize, TextureFormat.RGBA32, false);
+                _previewTexture2D.filterMode = FilterMode.Point;
+                _2dPreviewImage.image = _previewTexture2D;
+            }
+
+            float scale = _currentAsset.selectorScale;
+            float worldSize = _previewRenderDistance * 32f;
+            float step = worldSize / texSize;
+
+            // ИСПРАВЛЕНИЕ: Берем ноды биомов прямо из открытого графа!
+            var biomeNodes = _graphView.nodes.ToList().OfType<BiomeNode>().ToList();
+
+            for (int x = 0; x < texSize; x++)
+            {
+                for (int y = 0; y < texSize; y++)
+                {
+                    float wx = (x - texSize / 2f) * step;
+                    float wy = (y - texSize / 2f) * step;
+
+                    float temp = math.saturate((noise.cnoise(new float3(wx, 0, wy) * scale) + 1.0f) / 2.0f);
+
+                    Color finalColor = Color.black;
+                    float totalW = 0.0001f;
+                    float r = 0, g = 0, b = 0;
+
+                    if (biomeNodes.Count > 0)
+                    {
+                        foreach (var biome in biomeNodes)
+                        {
+                            float dist = Mathf.Abs(temp - biome.TargetTemp);
+                            float w = Mathf.Pow(Mathf.Clamp01(1.0f - dist * 5.0f), 2.0f);
+                            r += biome.ColorValue.r * w;
+                            g += biome.ColorValue.g * w;
+                            b += biome.ColorValue.b * w;
+                            totalW += w;
+                        }
+                        finalColor = new Color(r / totalW, g / totalW, b / totalW, 1f);
+                    }
+
+                    _previewTexture2D.SetPixel(x, y, finalColor);
+                }
+            }
+            _previewTexture2D.Apply();
+        }
+
+        private void Update3DChunk()
+        {
+            var shader = AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute");
+            if (shader == null) return;
+
+            var gpuGen = new GPUChunkGenerator(shader);
+            var settings = new TerrainSettings { seed = 1337f, hubScale = 0.03f, hubThreshold = 0.4f, branchScale = 0.01f, branchThreshold = 0.025f };
+
+            // НОВОЕ: Передаем мировые координаты выбранного чанка (умножаем на 32)
+            int3 worldPos = new int3(_previewChunkPos.x * 32, _previewChunkPos.y * 32, _previewChunkPos.z * 32);
+            var mesh = gpuGen.GenerateChunkSync(new int3(32, 32, 32), worldPos, _currentAsset, settings);
+
+            if (_previewMesh != null) DestroyImmediate(_previewMesh);
+            _previewMesh = mesh;
+
+            if (_previewMesh != null) _previewMesh.RecalculateBounds();
+
+            gpuGen.Dispose();
+
+            // Заставляем UI перерисоваться немедленно
+            if (_3dPreviewContainer != null) _3dPreviewContainer.MarkDirtyRepaint();
+        }
+
+        private void Draw3DPreview()
+        {
+            Rect rect = _3dPreviewContainer.contentRect;
+            if (rect.width <= 0 || rect.height <= 0) return;
+
+            Event e = Event.current;
+            if (e.type == EventType.MouseDrag && rect.Contains(e.mousePosition) && e.button == 0)
+            {
+                _previewDragRotation.x += e.delta.y * 1.5f;
+                _previewDragRotation.y += e.delta.x * 1.5f;
+                e.Use();
+            }
+
+            _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
+
+            if (_previewMesh != null && _previewMesh.vertexCount > 0)
+            {
+                Vector3 chunkCenter = new Vector3(16, 16, 16);
+                Quaternion camRot = Quaternion.Euler(_previewDragRotation.x, _previewDragRotation.y, 0);
+                Vector3 camDir = camRot * new Vector3(0, 0, -60);
+                _previewRenderUtility.camera.transform.position = chunkCenter + camDir;
+                _previewRenderUtility.camera.transform.LookAt(chunkCenter);
+
+                _previewRenderUtility.DrawMesh(_previewMesh, Matrix4x4.identity, _previewMaterial, 0);
+            }
+
+            _previewRenderUtility.camera.Render();
+            Texture renderResult = _previewRenderUtility.EndPreview();
+            GUI.DrawTexture(rect, renderResult);
+
+            // НОВОЕ: Если меш пустой (как у тебя сейчас), пишем подсказку!
+            if (_previewMesh == null || _previewMesh.vertexCount == 0)
+            {
+                GUIStyle labelStyle = new GUIStyle(EditorStyles.boldLabel);
+                labelStyle.normal.textColor = Color.yellow;
+                labelStyle.alignment = TextAnchor.MiddleCenter;
+                GUI.Label(rect, "Chunk is empty\n(Underground or in the sky?)", labelStyle);
+            }
+        }
+
+        // --- ДАЛЬШЕ ИДЕТ СТАРЫЙ КОД СОХРАНЕНИЯ, КОМПИЛЯЦИИ И ЗАГРУЗКИ ---
 
         private void Compile()
         {
@@ -54,6 +265,7 @@
             {
                 var sourceNode = selectorConnection.output.node;
                 if (sourceNode is NoiseNode n) scaleFromNode = n.Scale;
+                else if (sourceNode is AdvancedNoiseNode adv) scaleFromNode = adv.Scale;
                 else if (sourceNode is OctaveNoiseNode oct) scaleFromNode = oct.Scale;
             }
             _currentAsset.selectorScale = scaleFromNode;
@@ -61,7 +273,7 @@
             EditorUtility.SetDirty(_currentAsset);
             AssetDatabase.SaveAssets();
 
-            // --- ГЕНЕРАЦИЯ HLSL ---
+            // Генерация HLSL
             int varCount = 0;
             var cache = new Dictionary<VoxelNode, string>();
             string selCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
@@ -76,7 +288,7 @@
                 string dCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out string dVar, cache);
                 string cCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string cVar, cache);
                 if (cVar == "0.0f") cVar = "float4(1,1,1,1)";
-                string tStr = bNode.TargetTemp.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+                string tStr = bNode.TargetTemp.ToString("F3", CultureInfo.InvariantCulture);
                 string wVar = $"weight_{varCount++}";
 
                 biomeBlocks.Add($@"
@@ -92,13 +304,13 @@
             string colorFinal = $"float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; {sharedLogic} return finalColor / totalW;";
 
             string shaderPath = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
-            string content = System.IO.File.ReadAllText(shaderPath);
+            string content = File.ReadAllText(shaderPath);
             content = ReplaceTag(content, "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", densityFinal);
             content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorFinal);
 
-            System.IO.File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
+            File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
             AssetDatabase.ImportAsset(shaderPath);
-            Debug.Log("<color=cyan>Voxel Graph: Compiled!</color>");
+            Debug.Log("<color=cyan>Voxel Graph: Compiled & Baked!</color>");
         }
 
         private string ReplaceTag(string text, string start, string end, string newText)
@@ -171,12 +383,18 @@
         private string SerializeNodeData(VoxelNode node)
         {
             var c = CultureInfo.InvariantCulture;
-            if (node is NoiseNode n) return $"Noise|{n.SelectedType}|{n.Scale.ToString(c)}";
             if (node is ConstantNode cn) return $"Const|{cn.Value.ToString(c)}";
+            if (node is Vector3Node v3n) return $"Vec3|{v3n.Value.x.ToString(c)}|{v3n.Value.y.ToString(c)}|{v3n.Value.z.ToString(c)}";
+            if (node is AdvancedNoiseNode adv) return $"AdvNoise|{adv.SelectedType}|{adv.Scale.ToString(c)}|{adv.Octaves}|{adv.Persistence.ToString(c)}|{adv.Lacunarity.ToString(c)}|{adv.Offset.x.ToString(c)}|{adv.Offset.y.ToString(c)}|{adv.Offset.z.ToString(c)}";
+
+            if (node is NoiseNode n) return $"Noise|{n.SelectedType}|{n.Scale.ToString(c)}";
+            if (node is OctaveNoiseNode oct) return $"Octave|{oct.SelectedType}|{oct.Octaves}|{oct.Persistence.ToString(c)}|{oct.Scale.ToString(c)}";
+
             if (node is MathNode m) return $"Math|{m.Operation}";
             if (node is BiomeNode b) return $"Biome|{b.TargetTemp.ToString(c)}|{b.ColorValue.r.ToString(c)}|{b.ColorValue.g.ToString(c)}|{b.ColorValue.b.ToString(c)}";
             if (node is ColorNode col) return $"Color|{col.Value.r.ToString(c)}|{col.Value.g.ToString(c)}|{col.Value.b.ToString(c)}";
-            if (node is OctaveNoiseNode oct) return $"Octave|{oct.SelectedType}|{oct.Octaves}|{oct.Persistence.ToString(c)}|{oct.Scale.ToString(c)}";
+            if (node is MakeVector3Node) return "MakeVec3";
+            if (node is CoordinateNode coord) return $"Coord|{coord.X.ToString(c)}|{coord.Y.ToString(c)}|{coord.Z.ToString(c)}";
             return "None";
         }
 
@@ -187,16 +405,38 @@
             var c = CultureInfo.InvariantCulture;
             try
             {
-                if (p[0] == "Noise" && node is NoiseNode noise)
-                {
-                    noise.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
-                    noise.Scale = float.Parse(p[2], c);
-                    noise.RefreshUI(); // Вызываем метод обновления UI
-                }
-                else if (p[0] == "Const" && node is ConstantNode constant)
+                if (p[0] == "Const" && node is ConstantNode constant)
                 {
                     constant.Value = float.Parse(p[1], c);
                     constant.RefreshUI();
+                }
+                else if (p[0] == "Vec3" && node is Vector3Node v3)
+                {
+                    v3.Value = new Vector3(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c));
+                    v3.RefreshUI();
+                }
+                else if (p[0] == "AdvNoise" && node is AdvancedNoiseNode adv)
+                {
+                    adv.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    adv.Scale = float.Parse(p[2], c);
+                    adv.Octaves = int.Parse(p[3]);
+                    adv.Persistence = float.Parse(p[4], c);
+                    adv.Lacunarity = float.Parse(p[5], c);
+                    adv.Offset = new Vector3(float.Parse(p[6], c), float.Parse(p[7], c), float.Parse(p[8], c));
+                    adv.RefreshUI();
+                }
+                else if (p[0] == "Coord" && node is CoordinateNode coord)
+                {
+                    coord.X = float.Parse(p[1], c);
+                    coord.Y = float.Parse(p[2], c);
+                    coord.Z = float.Parse(p[3], c);
+                    coord.RefreshUI();
+                }
+                else if (p[0] == "Noise" && node is NoiseNode noise)
+                {
+                    noise.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    noise.Scale = float.Parse(p[2], c);
+                    noise.RefreshUI();
                 }
                 else if (p[0] == "Math" && node is MathNode math)
                 {
@@ -205,10 +445,7 @@
                 else if (p[0] == "Biome" && node is BiomeNode biome)
                 {
                     biome.TargetTemp = float.Parse(p[1], c);
-                    if (p.Length >= 5)
-                    {
-                        biome.ColorValue = new Color(float.Parse(p[2], c), float.Parse(p[3], c), float.Parse(p[4], c), 1f);
-                    }
+                    if (p.Length >= 5) biome.ColorValue = new Color(float.Parse(p[2], c), float.Parse(p[3], c), float.Parse(p[4], c), 1f);
                     biome.RefreshUI();
                 }
                 else if (p[0] == "Color" && node is ColorNode col)

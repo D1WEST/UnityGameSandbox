@@ -28,6 +28,7 @@
                 new SearchTreeGroupEntry(new GUIContent("Noise"), 1),
                 new SearchTreeEntry(new GUIContent("Noise Generator")) { level = 2, userData = typeof(NoiseNode) },
                 new SearchTreeEntry(new GUIContent("Octave")) { level = 2, userData = typeof(OctaveNoiseNode) },
+                new SearchTreeEntry(new GUIContent("Advanced Noise")) { level = 2, userData = typeof(AdvancedNoiseNode) },
                 new SearchTreeEntry(new GUIContent("Step")) { level = 2, userData = typeof(StepNode) },
 
                 // РАЗДЕЛ: ЦВЕТА
@@ -47,6 +48,9 @@
                 // РАЗДЕЛ: ВВОД И КОНСТАНТЫ
                 new SearchTreeGroupEntry(new GUIContent("Input"), 1),
                 new SearchTreeEntry(new GUIContent("Constant (float)")) { level = 2, userData = typeof(ConstantNode) },
+                new SearchTreeEntry(new GUIContent("Constant (Vector3)")) { level = 2, userData = typeof(Vector3Node) },
+                new SearchTreeEntry(new GUIContent("Coordinate (X,Y,Z)")) { level = 2, userData = typeof(CoordinateNode) },
+                new SearchTreeEntry(new GUIContent("Make Vector3")) { level = 2, userData = typeof(MakeVector3Node) },
                 new SearchTreeEntry(new GUIContent("World Position")) { level = 2, userData = typeof(PositionNode) },
                 new SearchTreeEntry(new GUIContent("Split Vector3")) { level = 2, userData = typeof(ComponentNode) },
 
