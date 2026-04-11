@@ -7,6 +7,7 @@
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Text;
     using Unity.Mathematics;
     using UnityEditor;
     using UnityEditor.Experimental.GraphView;
@@ -174,9 +175,9 @@
                         {
                             float dist = Mathf.Abs(temp - biome.TargetTemp);
                             float w = Mathf.Pow(Mathf.Clamp01(1.0f - dist * 5.0f), 2.0f);
-                            r += biome.ColorValue.r * w;
-                            g += biome.ColorValue.g * w;
-                            b += biome.ColorValue.b * w;
+                            r += biome.TexIndexR * w;
+                            g += biome.TexIndexG * w;
+                            b += biome.TexIndexB * w;
                             totalW += w;
                         }
                         finalColor = new Color(r / totalW, g / totalW, b / totalW, 1f);
@@ -193,10 +194,18 @@
             var shader = AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute");
             if (shader == null) return;
 
-            var gpuGen = new GPUChunkGenerator(shader);
+            // ИСПРАВЛЕНИЕ: Находим конфиг материалов для превью
+            var config = AssetDatabase.FindAssets("t:VoxelMaterialConfig")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<VoxelMaterialConfig>(AssetDatabase.GUIDToAssetPath(guid)))
+                .FirstOrDefault();
+
+            if (config == null) return;
+
+            // Теперь передаем и шейдер, и конфиг
+            var gpuGen = new GPUChunkGenerator(shader, config);
+
             var settings = new TerrainSettings { seed = 1337f, hubScale = 0.03f, hubThreshold = 0.4f, branchScale = 0.01f, branchThreshold = 0.025f };
 
-            // НОВОЕ: Передаем мировые координаты выбранного чанка (умножаем на 32)
             int3 worldPos = new int3(_previewChunkPos.x * 32, _previewChunkPos.y * 32, _previewChunkPos.z * 32);
             var mesh = gpuGen.GenerateChunkSync(new int3(32, 32, 32), worldPos, _currentAsset, settings);
 
@@ -207,7 +216,6 @@
 
             gpuGen.Dispose();
 
-            // Заставляем UI перерисоваться немедленно
             if (_3dPreviewContainer != null) _3dPreviewContainer.MarkDirtyRepaint();
         }
 
@@ -258,59 +266,75 @@
             var outputNode = _graphView.nodes.ToList().OfType<OutputNode>().FirstOrDefault();
             if (outputNode == null || _currentAsset == null) return;
 
-            // Пытаемся найти масштаб шума в Selector
-            float scaleFromNode = 0.001f;
-            var selectorConnection = outputNode.SelectorInput.connections.FirstOrDefault();
-            if (selectorConnection != null)
-            {
-                var sourceNode = selectorConnection.output.node;
-                if (sourceNode is NoiseNode n) scaleFromNode = n.Scale;
-                else if (sourceNode is AdvancedNoiseNode adv) scaleFromNode = adv.Scale;
-                else if (sourceNode is OctaveNoiseNode oct) scaleFromNode = oct.Scale;
-            }
-            _currentAsset.selectorScale = scaleFromNode;
+            var config = AssetDatabase.FindAssets("t:VoxelMaterialConfig")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<VoxelMaterialConfig>(AssetDatabase.GUIDToAssetPath(guid)))
+                .FirstOrDefault();
 
-            EditorUtility.SetDirty(_currentAsset);
-            AssetDatabase.SaveAssets();
+            if (config == null) return;
+            ShaderWriter.UpdateShaders(config);
 
-            // Генерация HLSL
             int varCount = 0;
             var cache = new Dictionary<VoxelNode, string>();
-            string selCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+
+            // --- 1. ГЕНЕРАЦИЯ ПЛОТНОСТИ (ФОРМА МИРА) ---
+            // Мы берем ноды, которые отвечают за форму земли (подключены к Density первого биома)
+            string densityNodesCode = "";
+            string finalDensityVar = "0.0";
+
+            var firstBiomePort = outputNode.BiomePorts.FirstOrDefault(p => p.connected);
+            if (firstBiomePort != null)
+            {
+                var bNode = firstBiomePort.connections.First().output.node as BiomeNode;
+                densityNodesCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out finalDensityVar, cache);
+            }
+
+            // --- 2. ГЕНЕРАЦИЯ ЦВЕТА (БИОМЫ) ---
+            string selectorCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
             if (selVar == "0.0f") selVar = "0.5f";
 
-            List<string> biomeBlocks = new List<string>();
+            List<string> colorMixBlocks = new List<string>();
             foreach (var port in outputNode.BiomePorts)
             {
                 var conn = port.connections.FirstOrDefault();
                 if (conn == null) continue;
                 var bNode = conn.output.node as BiomeNode;
-                string dCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out string dVar, cache);
-                string cCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string cVar, cache);
-                if (cVar == "0.0f") cVar = "float4(1,1,1,1)";
-                string tStr = bNode.TargetTemp.ToString("F3", CultureInfo.InvariantCulture);
-                string wVar = $"weight_{varCount++}";
 
-                biomeBlocks.Add($@"
-        {dCode} {cCode}
-        float {wVar} = pow(saturate(1.0 - abs({selVar} - {tStr}) * 5.0), 2.0);
-        finalDensity += {dVar} * {wVar};
-        finalColor += {cVar} * {wVar};
-        totalW += {wVar};");
+                string wCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string wVar, cache);
+                string tStr = bNode.TargetTemp.ToString("F3", culture);
+                string weightVar = $"bw_{varCount++}";
+                string colVar = $"bc_{varCount++}";
+
+                colorMixBlocks.Add($@"
+    {{
+        {wCode}
+        float {weightVar} = pow(saturate(1.0 - abs({selVar} - {tStr}) * 2.5), 2.0);
+        float3 {colVar} = SampleBiomeColor(worldPos, normal, int4({bNode.TexIndexR},{bNode.TexIndexG},{bNode.TexIndexB},{bNode.TexIndexA}), {wVar});
+        finalColor.rgb += {colVar} * {weightVar};
+        totalW += {weightVar};
+    }}");
             }
 
-            string sharedLogic = $"{selCode}\n" + string.Join("\n", biomeBlocks);
-            string densityFinal = $"float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; {sharedLogic} density = finalDensity / totalW;";
-            string colorFinal = $"float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; {sharedLogic} return finalColor / totalW;";
+            // ФИНАЛЬНЫЙ HLSL
+            string densityHLSL = $@"{densityNodesCode} 
+    density = {finalDensityVar};";
 
-            string shaderPath = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
-            string content = File.ReadAllText(shaderPath);
-            content = ReplaceTag(content, "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", densityFinal);
-            content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorFinal);
+            string colorHLSL = $@"
+    float totalW = 0.0001f; 
+    float4 finalColor = 0.0f; 
+    {selectorCode}
+    {string.Join("\n", colorMixBlocks)}
+    return float4(finalColor.rgb / totalW, 1.0);";
 
-            File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
-            AssetDatabase.ImportAsset(shaderPath);
-            Debug.Log("<color=cyan>Voxel Graph: Compiled & Baked!</color>");
+            string path = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
+            string content = File.ReadAllText(path);
+            content = ReplaceTag(content, "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", densityHLSL);
+            content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorHLSL);
+
+            File.WriteAllText(path, content, new UTF8Encoding(false));
+            Save();
+            AssetDatabase.ImportAsset(path);
+            Debug.Log("<color=cyan>Voxel Graph: Рельеф восстановлен, FPS оптимизирован!</color>");
         }
 
         private string ReplaceTag(string text, string start, string end, string newText)
@@ -391,11 +415,12 @@
             if (node is OctaveNoiseNode oct) return $"Octave|{oct.SelectedType}|{oct.Octaves}|{oct.Persistence.ToString(c)}|{oct.Scale.ToString(c)}";
 
             if (node is MathNode m) return $"Math|{m.Operation}";
-            if (node is BiomeNode b) return $"Biome|{b.TargetTemp.ToString(c)}|{b.ColorValue.r.ToString(c)}|{b.ColorValue.g.ToString(c)}|{b.ColorValue.b.ToString(c)}";
+            if (node is BiomeNode b) return $"Biome|{b.TargetTemp.ToString(c)}|{b.TexIndexR}|{b.TexIndexG}|{b.TexIndexB}|{b.TexIndexA}";
             if (node is ColorNode col) return $"Color|{col.Value.r.ToString(c)}|{col.Value.g.ToString(c)}|{col.Value.b.ToString(c)}";
             if (node is MakeVector3Node) return "MakeVec3";
             if (node is CoordinateNode coord) return $"Coord|{coord.X.ToString(c)}|{coord.Y.ToString(c)}|{coord.Z.ToString(c)}";
             if (node is TextureSlotNode ts) return $"TexSlot|{ts.SelectedSlot}";
+            if (node is TextureLayerNode tln) return "LayerMixer|" + JsonUtility.ToJson(tln);
             return "None";
         }
 
@@ -426,6 +451,12 @@
                     adv.Offset = new Vector3(float.Parse(p[6], c), float.Parse(p[7], c), float.Parse(p[8], c));
                     adv.RefreshUI();
                 }
+                else if (p[0] == "LayerMixer" && node is TextureLayerNode tln)
+                {
+                    // Загружаем данные из JSON в существующий объект
+                    JsonUtility.FromJsonOverwrite(p[1], tln);
+                    tln.RefreshUI();
+                }
                 else if (p[0] == "Coord" && node is CoordinateNode coord)
                 {
                     coord.X = float.Parse(p[1], c);
@@ -446,7 +477,13 @@
                 else if (p[0] == "Biome" && node is BiomeNode biome)
                 {
                     biome.TargetTemp = float.Parse(p[1], c);
-                    if (p.Length >= 5) biome.ColorValue = new Color(float.Parse(p[2], c), float.Parse(p[3], c), float.Parse(p[4], c), 1f);
+                    if (p.Length >= 6)
+                    {
+                        biome.TexIndexR = int.Parse(p[2]);
+                        biome.TexIndexG = int.Parse(p[3]);
+                        biome.TexIndexB = int.Parse(p[4]);
+                        biome.TexIndexA = int.Parse(p[5]);
+                    }
                     biome.RefreshUI();
                 }
                 else if (p[0] == "Color" && node is ColorNode col)

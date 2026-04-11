@@ -38,6 +38,7 @@
 
                 new SearchTreeGroupEntry(new GUIContent("Textures"), 1),
                 new SearchTreeEntry(new GUIContent("Texture Slot")) { level = 2, userData = typeof(TextureSlotNode) },
+                new SearchTreeEntry(new GUIContent("Height Texture Mixer")) { level = 2, userData = typeof(TextureLayerNode) },
 
                 // РАЗДЕЛ: МАТЕМАТИКА
                 new SearchTreeGroupEntry(new GUIContent("Math"), 1),

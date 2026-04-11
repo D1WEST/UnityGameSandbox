@@ -16,7 +16,8 @@ namespace Assets.Modules.GenerationModule
 
         [Header("GPU Generation")]
         public ComputeShader marchingCubesShader;
-        private GPUChunkGenerator gpuChunkGenerator;
+        private GPUChunkGenerator gpuChunkGenerator; 
+        public VoxelMaterialConfig materialConfig;
 
         [Header("Graph Data")]
         public VoxelGraphData graphData;
@@ -48,8 +49,9 @@ namespace Assets.Modules.GenerationModule
 
         void Awake()
         {
-            if (marchingCubesShader == null) return;
-            gpuChunkGenerator = new GPUChunkGenerator(marchingCubesShader);
+            if (marchingCubesShader == null || materialConfig == null) return;
+            // ПЕРЕДАЕМ КОНФИГ ПРИ СОЗДАНИИ
+            gpuChunkGenerator = new GPUChunkGenerator(marchingCubesShader, materialConfig);
         }
 
         void Update()

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60a8e8464841e044fa5032aea5d3e88e, type: 3}
+  m_Name: VoxelMaterialConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.GenerationModule.Models.VoxelMaterialConfig
+  Textures:
+  - Name: 0
+    MainTex: {fileID: 2800000, guid: 4b13c3aa7713124418fd1f17e83a5be7, type: 3}
+    Tiling: 0.1
+  - Name: 1
+    MainTex: {fileID: 2800000, guid: 6e03d6a07afb8314997276ef200d1f5d, type: 3}
+    Tiling: 0.1
+  - Name: 2
+    MainTex: {fileID: 2800000, guid: 2d46fcecf861db146a6a331115071f0e, type: 3}
+    Tiling: 0.1
+  - Name: 3
+    MainTex: {fileID: 2800000, guid: 6dc316139475bb04e887760522945098, type: 3}
+    Tiling: 0.1
+  - Name: 4
+    MainTex: {fileID: 2800000, guid: 80dd8791e62eb704ca754825e109f4e9, type: 3}
+    Tiling: 0.1
+  TargetMaterial: {fileID: 2100000, guid: 03c52eb4b156f1940ac6925321fd0c21, type: 2}

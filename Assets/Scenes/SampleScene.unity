@@ -948,6 +948,7 @@ MonoBehaviour:
   chunkPrefab: {fileID: 662446737174614774, guid: a73db11a714ea9742a29ad8d2b0a159d, type: 3}
   player: {fileID: 208961342}
   marchingCubesShader: {fileID: 7200000, guid: 63f6feef258bf9142a8d96f4e94342bd, type: 3}
+  materialConfig: {fileID: 11400000, guid: f8de8c9110844e04db69fad097f09cae, type: 2}
   graphData: {fileID: 11400000, guid: 5d1d0109f08e1da4586668f78753f5b3, type: 2}
   chunkSize:
     x: 16

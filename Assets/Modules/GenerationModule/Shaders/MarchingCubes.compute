@@ -6,6 +6,46 @@
 #include "PerlinNoise3D.hlsl"
 #include "VoronoiNoise3D.hlsl"
 
+// [TEX_DECL_START]
+Texture2D _Tex0; SamplerState sampler_Tex0; float _Scale0;
+Texture2D _Tex1; SamplerState sampler_Tex1; float _Scale1;
+Texture2D _Tex2; SamplerState sampler_Tex2; float _Scale2;
+Texture2D _Tex3; SamplerState sampler_Tex3; float _Scale3;
+Texture2D _Tex4; SamplerState sampler_Tex4; float _Scale4;
+
+    // [TEX_DECL_END]
+
+float3 GetTriplanarSample(Texture2D t, SamplerState s, float3 p, float3 n, float scale)
+{
+    float3 blending = abs(n);
+    blending /= (blending.x + blending.y + blending.z);
+    float3 col = t.SampleLevel(s, p.zy * scale, 0).rgb * blending.x +
+                 t.SampleLevel(s, p.xz * scale, 0).rgb * blending.y +
+                 t.SampleLevel(s, p.xy * scale, 0).rgb * blending.z;
+    return col;
+}
+
+float3 GetTextureByIndex(int index, float3 worldPos, float3 normal)
+{
+    // [TEX_LOGIC_START]
+    if (index == 0) return GetTriplanarSample(_Tex0, sampler_Tex0, worldPos, normal, _Scale0);
+    if (index == 1) return GetTriplanarSample(_Tex1, sampler_Tex1, worldPos, normal, _Scale1);
+    if (index == 2) return GetTriplanarSample(_Tex2, sampler_Tex2, worldPos, normal, _Scale2);
+    if (index == 3) return GetTriplanarSample(_Tex3, sampler_Tex3, worldPos, normal, _Scale3);
+    if (index == 4) return GetTriplanarSample(_Tex4, sampler_Tex4, worldPos, normal, _Scale4);
+
+    // [TEX_LOGIC_END]
+    return float3(1, 0, 1);
+}
+
+float3 SampleBiomeColor(float3 worldPos, float3 normal, int4 indices, float4 weights)
+{
+    return GetTextureByIndex(indices.x, worldPos, normal) * weights.r +
+           GetTextureByIndex(indices.y, worldPos, normal) * weights.g +
+           GetTextureByIndex(indices.z, worldPos, normal) * weights.b +
+           GetTextureByIndex(indices.w, worldPos, normal) * weights.a;
+}
+
 struct Triangle
 {
     float3 a;
@@ -16,7 +56,6 @@ struct Triangle
     float4 colorC;
 };
 
-// --- BUFFERS ---
 RWStructuredBuffer<float> Densities;
 AppendStructuredBuffer<Triangle> Triangles;
 
@@ -36,60 +75,98 @@ uint GetIndex(uint x, uint y, uint z)
     return x + y * (uint) ChunkSize.x + z * (uint) ChunkSize.x * (uint) ChunkSize.y;
 }
 
-float4 GetBlendedColor(float3 worldPos)
+float4 GetBlendedColor(float3 worldPos, float3 normal)
 {
     // [NODE_COLOR_START]
-float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; float noise_0 = PerlinNoise(worldPos * 0.0100);
-float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
 
+    float totalW = 0.0001f; 
+    float4 finalColor = 0.0f; 
+    float noise_4 = PerlinNoise(worldPos * 0.0100);
+float clamp_5 = clamp(noise_4, 0.0010f, 1.0000f);
 
-        float adv_noise_2 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0.00, 0.00, 0.00), uint(4), 1.2000, 2.0000, 1.0);
-float math_3 = 40.0000f - worldPos.y;
-float math_4 = adv_noise_2 + math_3;
- 
-        float weight_5 = pow(saturate(1.0 - abs(clamp_1 - 0.200) * 5.0), 2.0);
-        finalDensity += math_4 * weight_5;
-        finalColor += float4(1,0,0,0) * weight_5;
-        totalW += weight_5;
-
-         
-        float weight_6 = pow(saturate(1.0 - abs(clamp_1 - 0.400) * 5.0), 2.0);
-        finalDensity += math_4 * weight_6;
-        finalColor += float4(0,1,0,0) * weight_6;
-        totalW += weight_6;
-
-         
-        float weight_7 = pow(saturate(1.0 - abs(clamp_1 - 0.600) * 5.0), 2.0);
-        finalDensity += math_4 * weight_7;
-        finalColor += float4(0,0,1,0) * weight_7;
-        totalW += weight_7;
-
-         
-        float weight_8 = pow(saturate(1.0 - abs(clamp_1 - 0.800) * 5.0), 2.0);
-        finalDensity += math_4 * weight_8;
-        finalColor += float4(0,0,0,1) * weight_8;
-        totalW += weight_8;
-
-         
-        float weight_9 = pow(saturate(1.0 - abs(clamp_1 - 1.000) * 5.0), 2.0);
-        finalDensity += math_4 * weight_9;
-        finalColor += float4(0,0,0,1) * weight_9;
-        totalW += weight_9; return finalColor / totalW;
-    // [NODE_COLOR_END]
     
+    {
+        float mixNoise_7 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_6 = float4(0,0,0,0);
+    float w_8 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_7*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_7*0.50));
+    texWeights_6.r += w_8;
+    texWeights_6 /= max(0.0001, texWeights_6.r + texWeights_6.g + texWeights_6.b + texWeights_6.a);
+
+        float bw_9 = pow(saturate(1.0 - abs(clamp_5 - 0.200) * 2.5), 2.0);
+        float3 bc_10 = SampleBiomeColor(worldPos, normal, int4(0,1,2,3), texWeights_6);
+        finalColor.rgb += bc_10 * bw_9;
+        totalW += bw_9;
+    }
+
+    {
+        float mixNoise_12 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_11 = float4(0,0,0,0);
+    float w_13 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_12*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_12*0.50));
+    texWeights_11.g += w_13;
+    texWeights_11 /= max(0.0001, texWeights_11.r + texWeights_11.g + texWeights_11.b + texWeights_11.a);
+
+        float bw_14 = pow(saturate(1.0 - abs(clamp_5 - 0.400) * 2.5), 2.0);
+        float3 bc_15 = SampleBiomeColor(worldPos, normal, int4(0,1,2,3), texWeights_11);
+        finalColor.rgb += bc_15 * bw_14;
+        totalW += bw_14;
+    }
+
+    {
+        float mixNoise_17 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_16 = float4(0,0,0,0);
+    float w_18 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_17*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_17*0.50));
+    texWeights_16.b += w_18;
+    texWeights_16 /= max(0.0001, texWeights_16.r + texWeights_16.g + texWeights_16.b + texWeights_16.a);
+
+        float bw_19 = pow(saturate(1.0 - abs(clamp_5 - 0.600) * 2.5), 2.0);
+        float3 bc_20 = SampleBiomeColor(worldPos, normal, int4(0,1,2,3), texWeights_16);
+        finalColor.rgb += bc_20 * bw_19;
+        totalW += bw_19;
+    }
+
+    {
+        float mixNoise_22 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_21 = float4(0,0,0,0);
+    float w_23 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_22*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_22*0.50));
+    texWeights_21.a += w_23;
+    texWeights_21 /= max(0.0001, texWeights_21.r + texWeights_21.g + texWeights_21.b + texWeights_21.a);
+
+        float bw_24 = pow(saturate(1.0 - abs(clamp_5 - 0.800) * 2.5), 2.0);
+        float3 bc_25 = SampleBiomeColor(worldPos, normal, int4(0,1,2,3), texWeights_21);
+        finalColor.rgb += bc_25 * bw_24;
+        totalW += bw_24;
+    }
+
+    {
+        float mixNoise_27 = SimplexNoise(worldPos * 0.0500);
+    float4 texWeights_26 = float4(0,0,0,0);
+    float w_28 = saturate(smoothstep(-100.00-5.00, -100.00+5.00, worldPos.y + mixNoise_27*0.50)) * saturate(1.0 - smoothstep(100.00-5.00, 100.00+5.00, worldPos.y + mixNoise_27*0.50));
+    texWeights_26.a += w_28;
+    texWeights_26 /= max(0.0001, texWeights_26.r + texWeights_26.g + texWeights_26.b + texWeights_26.a);
+
+        float bw_29 = pow(saturate(1.0 - abs(clamp_5 - 1.000) * 2.5), 2.0);
+        float3 bc_30 = SampleBiomeColor(worldPos, normal, int4(0,1,2,3), texWeights_26);
+        finalColor.rgb += bc_30 * bw_29;
+        totalW += bw_29;
+    }
+    return float4(finalColor.rgb / totalW, 1.0);
+    // [NODE_COLOR_END]
 }
 
 float3 Interpolate(float3 p1, float val1, float3 p2, float val2)
 {
-    if (abs(IsoLevel - val1) < 0.00001)
+    float delta = val2 - val1;
+    if (abs(delta) < 0.00001)
+    {
         return p1;
-    if (abs(IsoLevel - val2) < 0.00001)
-        return p2;
-    if (abs(val1 - val2) < 0.00001)
-        return p1;
-    return p1 + (IsoLevel - val1) / (val2 - val1) * (p2 - p1);
+    }
+    
+    float mu = (IsoLevel - val1) / delta;
+    
+    mu = saturate(mu);
+    
+    return p1 + mu * (p2 - p1);
 }
-
 [numthreads(4, 4, 4)]
 void GenerateDensity(uint3 id : SV_DispatchThreadID)
 {
@@ -100,42 +177,12 @@ void GenerateDensity(uint3 id : SV_DispatchThreadID)
     float density = 0;
 
     // [NODE_GRAPH_START]
-float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; float noise_0 = PerlinNoise(worldPos * 0.0100);
-float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
-
-
-        float adv_noise_2 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0.00, 0.00, 0.00), uint(4), 1.2000, 2.0000, 1.0);
-float math_3 = 40.0000f - worldPos.y;
-float math_4 = adv_noise_2 + math_3;
+float adv_noise_0 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0.00, 0.00, 0.00), uint(4), 2.0000, 0.5000, 1.0);
+float math_1 = adv_noise_0 * 25.0000f;
+float math_2 = 40.0000f - worldPos.y;
+float math_3 = math_1 + math_2;
  
-        float weight_5 = pow(saturate(1.0 - abs(clamp_1 - 0.200) * 5.0), 2.0);
-        finalDensity += math_4 * weight_5;
-        finalColor += float4(1,0,0,0) * weight_5;
-        totalW += weight_5;
-
-         
-        float weight_6 = pow(saturate(1.0 - abs(clamp_1 - 0.400) * 5.0), 2.0);
-        finalDensity += math_4 * weight_6;
-        finalColor += float4(0,1,0,0) * weight_6;
-        totalW += weight_6;
-
-         
-        float weight_7 = pow(saturate(1.0 - abs(clamp_1 - 0.600) * 5.0), 2.0);
-        finalDensity += math_4 * weight_7;
-        finalColor += float4(0,0,1,0) * weight_7;
-        totalW += weight_7;
-
-         
-        float weight_8 = pow(saturate(1.0 - abs(clamp_1 - 0.800) * 5.0), 2.0);
-        finalDensity += math_4 * weight_8;
-        finalColor += float4(0,0,0,1) * weight_8;
-        totalW += weight_8;
-
-         
-        float weight_9 = pow(saturate(1.0 - abs(clamp_1 - 1.000) * 5.0), 2.0);
-        finalDensity += math_4 * weight_9;
-        finalColor += float4(0,0,0,1) * weight_9;
-        totalW += weight_9; density = finalDensity / totalW;
+    density = math_3;
     // [NODE_GRAPH_END]
     
     float hM = smoothstep(_HubThreshold, _HubThreshold + 0.05, SimplexNoise(worldPos * _HubScale + _Seed));
@@ -178,13 +225,20 @@ void GenerateMesh(uint3 id : SV_DispatchThreadID)
     {
         if (TriTable[offset + k] == -1)
             break;
+            
         Triangle tri;
         tri.a = v[TriTable[offset + k]];
         tri.b = v[TriTable[offset + k + 1]];
         tri.c = v[TriTable[offset + k + 2]];
-        tri.colorA = GetBlendedColor(tri.a + float3(WorldOffset));
-        tri.colorB = GetBlendedColor(tri.b + float3(WorldOffset));
-        tri.colorC = GetBlendedColor(tri.c + float3(WorldOffset));
+        
+        float3 edge1 = tri.b - tri.a;
+        float3 edge2 = tri.c - tri.a;
+        float3 faceNormal = normalize(cross(edge1, edge2));
+
+        tri.colorA = GetBlendedColor(tri.a + float3(WorldOffset), faceNormal);
+        tri.colorB = GetBlendedColor(tri.b + float3(WorldOffset), faceNormal);
+        tri.colorC = GetBlendedColor(tri.c + float3(WorldOffset), faceNormal);
+        
         Triangles.Append(tri);
     }
 }
