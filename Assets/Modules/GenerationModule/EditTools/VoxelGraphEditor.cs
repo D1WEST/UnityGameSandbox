@@ -269,72 +269,67 @@
             var config = AssetDatabase.FindAssets("t:VoxelMaterialConfig")
                 .Select(guid => AssetDatabase.LoadAssetAtPath<VoxelMaterialConfig>(AssetDatabase.GUIDToAssetPath(guid)))
                 .FirstOrDefault();
-
             if (config == null) return;
+
             ShaderWriter.UpdateShaders(config);
 
             int varCount = 0;
             var cache = new Dictionary<VoxelNode, string>();
             var culture = System.Globalization.CultureInfo.InvariantCulture;
 
-            // --- 1. ГЕНЕРАЦИЯ ПЛОТНОСТИ (ФОРМА МИРА) ---
-            // Мы берем ноды, которые отвечают за форму земли (подключены к Density первого биома)
-            string densityNodesCode = "";
-            string finalDensityVar = "0.0";
+            // 1. КОД ДЛЯ COMPUTE SHADER (Только форма земли)
+            string shapeCode = "";
+            string densityVar = "0.0";
+            var firstBiome = outputNode.BiomePorts.FirstOrDefault(p => p.connected)?.connections.First().output.node as BiomeNode;
+            if (firstBiome != null) shapeCode = firstBiome.GetInputHLSL(firstBiome.DensityInput, ref varCount, out densityVar, cache);
 
-            var firstBiomePort = outputNode.BiomePorts.FirstOrDefault(p => p.connected);
-            if (firstBiomePort != null)
-            {
-                var bNode = firstBiomePort.connections.First().output.node as BiomeNode;
-                densityNodesCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out finalDensityVar, cache);
-            }
+            string computeDensityHLSL = $@"{shapeCode}
+    density = {densityVar}; 
+    density = clamp(density, -50.0, 50.0);";
 
-            // --- 2. ГЕНЕРАЦИЯ ЦВЕТА (БИОМЫ) ---
-            string selectorCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
-            if (selVar == "0.0f") selVar = "0.5f";
+            // 2. КОД ДЛЯ VISUAL SHADER (Пиксельная четкость текстур)
+            varCount = 0; // Сбрасываем счетчик для чистого кода в шейдере
+            cache.Clear();
 
-            List<string> colorMixBlocks = new List<string>();
+            string selectorHLSL = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string rawSel, cache);
+            string selVar = $"nSel_{varCount++}";
+            string fragLogic = $"{selectorHLSL}\n    float {selVar} = saturate({rawSel} * 0.5 + 0.5);\n";
+
             foreach (var port in outputNode.BiomePorts)
             {
                 var conn = port.connections.FirstOrDefault();
                 if (conn == null) continue;
                 var bNode = conn.output.node as BiomeNode;
 
-                string wCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string wVar, cache);
+                string wCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string wMask, cache);
                 string tStr = bNode.TargetTemp.ToString("F3", culture);
-                string weightVar = $"bw_{varCount++}";
-                string colVar = $"bc_{varCount++}";
+                string bWeight = $"bw_{varCount++}";
 
-                colorMixBlocks.Add($@"
+                fragLogic += $@"
     {{
         {wCode}
-        float {weightVar} = pow(saturate(1.0 - abs({selVar} - {tStr}) * 2.5), 2.0);
-        float3 {colVar} = SampleBiomeColor(worldPos, normal, int4({bNode.TexIndexR},{bNode.TexIndexG},{bNode.TexIndexB},{bNode.TexIndexA}), {wVar});
-        finalColor.rgb += {colVar} * {weightVar};
-        totalW += {weightVar};
-    }}");
+        float {bWeight} = pow(saturate(1.0 - abs({selVar} - {tStr}) * 4.0), 2.0);
+        float3 c = (GetTriplanar(_Tex{bNode.TexIndexR}, worldPos, normal, _Scale{bNode.TexIndexR}) * {wMask}.r +
+                    GetTriplanar(_Tex{bNode.TexIndexG}, worldPos, normal, _Scale{bNode.TexIndexG}) * {wMask}.g +
+                    GetTriplanar(_Tex{bNode.TexIndexB}, worldPos, normal, _Scale{bNode.TexIndexB}) * {wMask}.b +
+                    GetTriplanar(_Tex{bNode.TexIndexA}, worldPos, normal, _Scale{bNode.TexIndexA}) * {wMask}.a);
+        finalColor += c * {bWeight};
+        totalW += {bWeight};
+    }}";
             }
+            fragLogic += "\n    finalColor /= totalW;";
 
-            // ФИНАЛЬНЫЙ HLSL
-            string densityHLSL = $@"{densityNodesCode} 
-    density = {finalDensityVar};";
+            // ЗАПИСЬ В ФАЙЛЫ
+            string computePath = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
+            string visualPath = "Assets/Modules/GenerationModule/Shaders/VoxelTriplanar.shader";
 
-            string colorHLSL = $@"
-    float totalW = 0.0001f; 
-    float4 finalColor = 0.0f; 
-    {selectorCode}
-    {string.Join("\n", colorMixBlocks)}
-    return float4(finalColor.rgb / totalW, 1.0);";
+            File.WriteAllText(computePath, ReplaceTag(File.ReadAllText(computePath), "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", computeDensityHLSL), new UTF8Encoding(false));
+            File.WriteAllText(visualPath, ReplaceTag(File.ReadAllText(visualPath), "// [GENERATED_BIOME_LOGIC_START]", "// [GENERATED_BIOME_LOGIC_END]", fragLogic), new UTF8Encoding(false));
 
-            string path = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
-            string content = File.ReadAllText(path);
-            content = ReplaceTag(content, "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", densityHLSL);
-            content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorHLSL);
-
-            File.WriteAllText(path, content, new UTF8Encoding(false));
             Save();
-            AssetDatabase.ImportAsset(path);
-            Debug.Log("<color=cyan>Voxel Graph: Рельеф восстановлен, FPS оптимизирован!</color>");
+            AssetDatabase.ImportAsset(computePath);
+            AssetDatabase.ImportAsset(visualPath);
+            Debug.Log("<color=cyan>Voxel Graph: Пиксельная отрисовка включена!</color>");
         }
 
         private string ReplaceTag(string text, string start, string end, string newText)
