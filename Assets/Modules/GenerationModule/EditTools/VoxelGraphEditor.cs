@@ -47,19 +47,6 @@
             var outputNode = _graphView.nodes.ToList().OfType<OutputNode>().FirstOrDefault();
             if (outputNode == null || _currentAsset == null) return;
 
-            // --- 1. ЗАПЕКАНИЕ ДАННЫХ ДЛЯ CPU (BURST) ---
-            var biomeNodes = _graphView.nodes.ToList().OfType<BiomeNode>().OrderBy(b => b.TargetTemp).ToList();
-            var bakedList = new List<BakedBiome>();
-            foreach (var b in biomeNodes)
-            {
-                bakedList.Add(new BakedBiome
-                {
-                    targetTemp = b.TargetTemp,
-                    color = new float4(b.ColorValue.r, b.ColorValue.g, b.ColorValue.b, 1f)
-                });
-            }
-            _currentAsset.bakedBiomes = bakedList.ToArray();
-
             // Пытаемся найти масштаб шума в Selector
             float scaleFromNode = 0.001f;
             var selectorConnection = outputNode.SelectorInput.connections.FirstOrDefault();
@@ -74,7 +61,7 @@
             EditorUtility.SetDirty(_currentAsset);
             AssetDatabase.SaveAssets();
 
-            // --- 2. ГЕНЕРАЦИЯ HLSL ---
+            // --- ГЕНЕРАЦИЯ HLSL ---
             int varCount = 0;
             var cache = new Dictionary<VoxelNode, string>();
             string selCode = outputNode.GetInputHLSL(outputNode.SelectorInput, ref varCount, out string selVar, cache);
@@ -89,7 +76,7 @@
                 string dCode = bNode.GetInputHLSL(bNode.DensityInput, ref varCount, out string dVar, cache);
                 string cCode = bNode.GetInputHLSL(bNode.ColorInput, ref varCount, out string cVar, cache);
                 if (cVar == "0.0f") cVar = "float4(1,1,1,1)";
-                string tStr = bNode.TargetTemp.ToString("F3", CultureInfo.InvariantCulture);
+                string tStr = bNode.TargetTemp.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
                 string wVar = $"weight_{varCount++}";
 
                 biomeBlocks.Add($@"
@@ -105,13 +92,13 @@
             string colorFinal = $"float totalW = 0.0001f; float finalDensity = 0; float4 finalColor = 0; {sharedLogic} return finalColor / totalW;";
 
             string shaderPath = "Assets/Modules/GenerationModule/Shaders/MarchingCubes.compute";
-            string content = File.ReadAllText(shaderPath);
+            string content = System.IO.File.ReadAllText(shaderPath);
             content = ReplaceTag(content, "// [NODE_GRAPH_START]", "// [NODE_GRAPH_END]", densityFinal);
             content = ReplaceTag(content, "// [NODE_COLOR_START]", "// [NODE_COLOR_END]", colorFinal);
 
-            File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
+            System.IO.File.WriteAllText(shaderPath, content, new System.Text.UTF8Encoding(false));
             AssetDatabase.ImportAsset(shaderPath);
-            Debug.Log("<color=cyan>Voxel Graph: Compiled & Baked!</color>");
+            Debug.Log("<color=cyan>Voxel Graph: Compiled!</color>");
         }
 
         private string ReplaceTag(string text, string start, string end, string newText)

@@ -1,6 +1,5 @@
 ﻿using Assets.Modules.GenerationModule.EditTools;
 using Assets.Modules.GenerationModule.Models;
-using Assets.Modules.GenerationModule.Models.WestMM;
 using Assets.Modules.GenerationModule.Static;
 using System.Collections.Generic;
 using Unity.Mathematics;
@@ -71,9 +70,6 @@ namespace Assets.Modules.GenerationModule.Impl
             computeShader.SetInts("WorldOffset", worldPos.x, worldPos.y, worldPos.z);
             computeShader.SetFloat("IsoLevel", 0f);
             computeShader.SetFloat("_Seed", globalSettings.seed);
-
-            // Масштаб селектора биомов берем напрямую из ассета графа
-            computeShader.SetFloat("BiomeMapScale", graph.selectorScale);
 
             // Параметры пещер (оставляем как внешние настройки)
             computeShader.SetFloat("_HubScale", globalSettings.hubScale);
@@ -186,6 +182,72 @@ namespace Assets.Modules.GenerationModule.Impl
             mesh.RecalculateBounds(flags);
 
             return mesh;
+        }
+
+        public void RebuildMeshAsync(int3 size, int3 worldPos, VoxelGraphData graph, Unity.Collections.NativeArray<float> existingDensities, System.Action<Mesh> onComplete)
+        {
+            int3 actualSize = size + new int3(1, 1, 1);
+            int numPoints = actualSize.x * actualSize.y * actualSize.z;
+            int maxTriangles = (actualSize.x - 1) * (actualSize.y - 1) * (actualSize.z - 1) * 5;
+
+            // Создаем буферы
+            ComputeBuffer densitiesBuffer = new ComputeBuffer(numPoints, sizeof(float));
+            // Сразу загружаем в него обновленные данные копания с CPU
+            densitiesBuffer.SetData(existingDensities);
+
+            ComputeBuffer trianglesBuffer = new ComputeBuffer(maxTriangles, 84, ComputeBufferType.Append);
+            trianglesBuffer.SetCounterValue(0);
+
+            // Установка параметров
+            computeShader.SetInts("ChunkSize", actualSize.x, actualSize.y, actualSize.z);
+            computeShader.SetInts("WorldOffset", worldPos.x, worldPos.y, worldPos.z);
+            computeShader.SetFloat("IsoLevel", 0f);
+            computeShader.SetFloat("BiomeMapScale", graph.selectorScale);
+
+            // Запускаем ТОЛЬКО Marching Cubes (Ядро GenerateMesh)
+            computeShader.SetBuffer(meshKernel, "Densities", densitiesBuffer);
+            computeShader.SetBuffer(meshKernel, "Triangles", trianglesBuffer);
+            computeShader.SetBuffer(meshKernel, "TriTable", triTableBuffer);
+            computeShader.SetBuffer(meshKernel, "EdgeVertices", edgeVerticesBuffer);
+            computeShader.SetBuffer(meshKernel, "Corners", cornersBuffer);
+
+            int groupsX = Mathf.CeilToInt(actualSize.x / 4f);
+            int groupsY = Mathf.CeilToInt(actualSize.y / 4f);
+            int groupsZ = Mathf.CeilToInt(actualSize.z / 4f);
+
+            computeShader.Dispatch(meshKernel, groupsX, groupsY, groupsZ);
+
+            // Асинхронное чтение результата
+            ComputeBuffer argsBuffer = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
+            ComputeBuffer.CopyCount(trianglesBuffer, argsBuffer, 0);
+
+            void Cleanup()
+            {
+                densitiesBuffer?.Release();
+                trianglesBuffer?.Release();
+                argsBuffer?.Release();
+            }
+
+            AsyncGPUReadback.Request(argsBuffer, argsReq => {
+                if (argsReq.hasError) { Cleanup(); return; }
+                int triCount = argsReq.GetData<int>()[0];
+
+                if (triCount == 0)
+                {
+                    Cleanup();
+                    onComplete?.Invoke(null);
+                    return;
+                }
+
+                AsyncGPUReadback.Request(trianglesBuffer, triCount * 84, 0, triReq => {
+                    if (triReq.hasError) { Cleanup(); return; }
+                    Triangle[] gpuTriangles = triReq.GetData<Triangle>().ToArray();
+
+                    Mesh mesh = BuildMesh(gpuTriangles, triCount);
+                    Cleanup();
+                    onComplete?.Invoke(mesh);
+                });
+            });
         }
 
         public void Dispose()

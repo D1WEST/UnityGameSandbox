@@ -1,26 +1,16 @@
-﻿namespace Assets.Modules.GenerationModule.EditTools
-{
-    using System.Collections.Generic;
-    using UnityEngine;
-    using Unity.Mathematics;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
+namespace Assets.Modules.GenerationModule.EditTools
+{
     [CreateAssetMenu(fileName = "NewVoxelGraph", menuName = "Voxels/Voxel Graph")]
     public class VoxelGraphData : ScriptableObject
     {
         public List<NodeSerializedData> Nodes = new List<NodeSerializedData>();
         public List<EdgeSerializedData> Edges = new List<EdgeSerializedData>();
 
-        // --- ДАННЫЕ ДЛЯ RUNTIME (Замена WorldProfile) ---
-        [Header("Baked Data for CPU")]
+        [Header("Baked Data for GPU")]
         public float selectorScale = 0.001f;
-        public BakedBiome[] bakedBiomes;
-    }
-
-    [System.Serializable]
-    public struct BakedBiome // Компактная структура для Burst
-    {
-        public float targetTemp;
-        public float4 color;
     }
 
     [System.Serializable]

@@ -6,19 +6,6 @@
 #include "PerlinNoise3D.hlsl"
 #include "VoronoiNoise3D.hlsl"
 
-// --- STRUCTURES ---
-struct Biome
-{
-    float targetTemp;
-    float minHeight;
-    float maxHeight;
-    float detailScale;
-    float detailAmplitude;
-    float biomeWeightMultiplier;
-    float2 padding;
-    float4 biomeColor;
-};
-
 struct Triangle
 {
     float3 a;
@@ -30,10 +17,6 @@ struct Triangle
 };
 
 // --- BUFFERS ---
-StructuredBuffer<Biome> Biomes;
-int BiomeCount;
-float BiomeMapScale;
-
 RWStructuredBuffer<float> Densities;
 AppendStructuredBuffer<Triangle> Triangles;
 

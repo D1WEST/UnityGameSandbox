@@ -1,5 +1,4 @@
 ﻿using Assets.Modules.GenerationModule.Impl;
-using Assets.Modules.GenerationModule.Models.WestMM;
 
 namespace Assets.Modules.GenerationModule
 {
@@ -18,7 +17,6 @@ namespace Assets.Modules.GenerationModule
         [Header("GPU Generation")]
         public ComputeShader marchingCubesShader;
         private GPUChunkGenerator gpuChunkGenerator;
-        public WorldProfile worldProfile;
 
         [Header("Graph Data")]
         public VoxelGraphData graphData;
@@ -36,12 +34,6 @@ namespace Assets.Modules.GenerationModule
             minChunkY = -2,
             maxChunkY = 2,
             seed = 1337f,
-            biomeScale = 0.001f,
-            oceanHeight = 15f,
-            plainsHeight = 35f,
-            mountainHeight = 70f,
-            detailScale = 0.1f,
-            detailAmplitude = 1.2f, // Не делай больше 10, иначе опять будут рваные куски!
             hubScale = 0.03f,
             hubThreshold = 0.4f,
             branchScale = 0.01f,
@@ -50,9 +42,8 @@ namespace Assets.Modules.GenerationModule
 
         private Dictionary<int3, Chunk> chunks = new Dictionary<int3, Chunk>();
 
-        // Хранилище всех активных чанков
         private Dictionary<int3, Chunk> activeChunks = new Dictionary<int3, Chunk>();
-        // Список позиций, которые нужно создать
+
         private List<int3> chunkCreationQueue = new List<int3>();
 
         void Awake()

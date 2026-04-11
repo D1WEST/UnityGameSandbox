@@ -267,34 +267,3 @@ MonoBehaviour:
     OutputPortName: Single
     InputPortName: Biome Selector (0-1)
   selectorScale: 0.001
-  bakedBiomes:
-  - targetTemp: 0.2
-    color:
-      x: 1
-      y: 0
-      z: 0
-      w: 1
-  - targetTemp: 0.4
-    color:
-      x: 0.9058824
-      y: 0.5215687
-      z: 0.01960784
-      w: 1
-  - targetTemp: 0.6
-    color:
-      x: 0.9725491
-      y: 1
-      z: 0
-      w: 1
-  - targetTemp: 0.8
-    color:
-      x: 0
-      y: 1
-      z: 0.07058824
-      w: 1
-  - targetTemp: 1
-    color:
-      x: 0
-      y: 0.8509805
-      z: 1
-      w: 1
