@@ -182,8 +182,7 @@ float math_1 = adv_noise_0 * 25.0000f;
 float math_2 = 40.0000f - worldPos.y;
 float math_3 = math_1 + math_2;
 
-    density = math_3; 
-    density = clamp(density, -50.0, 50.0);
+    density = math_3; density = clamp(density, -50.0, 50.0);
     // [NODE_GRAPH_END]
     
     float hM = smoothstep(_HubThreshold, _HubThreshold + 0.05, SimplexNoise(worldPos * _HubScale + _Seed));

@@ -157,7 +157,7 @@ float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
         finalColor += c * bw_27;
         totalW += bw_27;
     }
-    finalColor /= totalW;
+    finalColor /= max(0.0001, totalW);
     // [GENERATED_BIOME_LOGIC_END]
 
                 float3 lightDir = _MainLightPosition.xyz;
