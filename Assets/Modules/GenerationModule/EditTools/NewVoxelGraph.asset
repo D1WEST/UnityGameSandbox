@@ -17,31 +17,31 @@ MonoBehaviour:
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.BiomeNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1241, y: 323}
-    Data: Biome|0.4|0|1|2|3
+    Data: Biome|0.400|0|1|2|3
     PortCount: 0
   - GUID: a5516e40-0d22-4163-9e2f-0faae3249df0
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.BiomeNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1241, y: 491}
-    Data: Biome|0.6|0|1|2|3
+    Data: Biome|0.600|0|1|2|3
     PortCount: 0
   - GUID: 1802efb6-ce6f-46ff-889a-74ed188ada08
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.BiomeNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1241, y: 670}
-    Data: Biome|0.8|0|1|2|3
+    Data: Biome|0.800|0|1|2|3
     PortCount: 0
   - GUID: 5061120b-df08-48b8-af30-a7680bfe0b87
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.BiomeNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1241, y: 843}
-    Data: Biome|1|0|1|2|3
+    Data: Biome|1.000|0|1|2|3
     PortCount: 0
   - GUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 14, y: -91}
-    Data: Const|40
+    Data: Const|40.0000
     PortCount: 0
   - GUID: b671ef29-c8af-4a21-981d-6d97712c9208
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.MathNode, Assembly-CSharp,
@@ -59,7 +59,7 @@ MonoBehaviour:
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.BiomeNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1241, y: 122}
-    Data: Biome|0.2|0|1|2|3
+    Data: Biome|0.200|0|1|2|3
     PortCount: 0
   - GUID: 
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ClampNode, Assembly-CSharp,
@@ -77,19 +77,19 @@ MonoBehaviour:
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1548, y: 82}
-    Data: Const|0.001
+    Data: Const|0.0000
     PortCount: 0
   - GUID: afc9ddd9-5622-45af-a2e4-63698b7c4d2b
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1548, y: 193}
-    Data: Const|1
+    Data: Const|1.0000
     PortCount: 0
   - GUID: da3d01df-0adf-4abe-a935-d76a48eea0a9
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.NoiseNode, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 1411, y: -92}
-    Data: Noise|Perlin|0.01
+    Data: Noise|Perlin|0.0010
     PortCount: 0
   - GUID: 27093f2f-67e2-49e5-98db-76126307dfaf
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.PositionNode, Assembly-CSharp,
@@ -101,7 +101,7 @@ MonoBehaviour:
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.AdvancedNoiseNode,
       Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: -8, y: -358}
-    Data: AdvNoise|Perlin|0.01|4|0.5|2|0|0|0
+    Data: AdvNoise|Perlin|0.0050|4|0.5000|2.0000|0.0000|0.0000|0.0000
     PortCount: 0
   - GUID: 09bb892a-0250-4823-82f8-7546a1f82c41
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
@@ -114,12 +114,6 @@ MonoBehaviour:
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 489, y: -248}
     Data: Math|Multiply
-    PortCount: 0
-  - GUID: dbf502ef-a5ff-4f4a-87b4-61e400beb51c
-    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    Position: {x: 306, y: -141}
-    Data: Const|25
     PortCount: 0
   - GUID: 9ed4384e-6692-416a-94b3-1236c5b82972
     Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.TextureLayerNode,
@@ -144,6 +138,12 @@ MonoBehaviour:
       Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     Position: {x: 684, y: 918}
     Data: LayerMixer|{"GUID":"17cb5f6e-3653-462d-90ba-150c7695a794","Rules":[{"MinHeight":50.0,"MaxHeight":100.0,"Transition":5.0,"TextureSlot":3,"NoiseInfluence":0.5},{"MinHeight":-100.0,"MaxHeight":50.0,"Transition":5.0,"TextureSlot":1,"NoiseInfluence":0.5}],"NoiseScale":0.05000000074505806}
+    PortCount: 0
+  - GUID: dbf502ef-a5ff-4f4a-87b4-61e400beb51c
+    Type: Assets.Modules.GenerationModule.EditTools.NodeSystem.ConstantNode, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    Position: {x: 335, y: -141}
+    Data: Const|40.0000
     PortCount: 0
   Edges:
   - OutputNodeGUID: 0d6f8c37-73f6-4c6c-b7cd-c89fd59c28ba

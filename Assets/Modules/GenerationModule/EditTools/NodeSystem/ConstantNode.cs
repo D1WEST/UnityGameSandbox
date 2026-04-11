@@ -30,7 +30,7 @@
             return "";
         }
 
-        public void RefreshUI()
+        public override void RefreshUI()
         {
             var field = mainContainer.Query<FloatField>().First();
             if (field != null) field.value = Value;

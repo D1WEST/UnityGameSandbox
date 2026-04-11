@@ -107,7 +107,7 @@
             _previewRenderUtility = new PreviewRenderUtility();
             _previewRenderUtility.camera.fieldOfView = 45f;
             _previewRenderUtility.camera.farClipPlane = 5000f;
-            _previewMaterial = new Material(Shader.Find("Hidden/Internal-Colored"));
+            _previewMaterial = new Material(GetPreviewShader());
         }
 
         private void UpdatePreviews()
@@ -168,7 +168,26 @@
             if (shader == null || config == null || _currentAsset == null) return;
 
             var gpuGen = new GPUChunkGenerator(shader, config);
-            var settings = new TerrainSettings { seed = 1337f, hubScale = 0.03f, hubThreshold = 0.4f, branchScale = 0.01f, branchThreshold = 0.025f };
+
+            // ПЫТАЕМСЯ ВЗЯТЬ НАСТРОЙКИ ИЗ ИГРЫ
+            var manager = GetWorldManager();
+            TerrainSettings settings;
+            if (manager != null)
+            {
+                settings = manager.terrainSettings;
+            }
+            else
+            {
+                // Если менеджера нет, используем эти, но ПРОВЕРЬТЕ пороги (Threshold)
+                settings = new TerrainSettings
+                {
+                    seed = 1337f,
+                    hubScale = 0.03f,
+                    hubThreshold = 0.2f, // Уменьшил порог для видимости пещер
+                    branchScale = 0.01f,
+                    branchThreshold = 0.01f
+                };
+            }
 
             List<CombineInstance> combines = new List<CombineInstance>();
             int halfArea = _previewRenderDistance3D / 2;
@@ -179,8 +198,8 @@
                 {
                     for (int y = _minPreviewY; y <= _maxPreviewY; y++)
                     {
-                        int3 worldPos = new int3((_previewChunkPos.x + x) * 32, y * 32, (_previewChunkPos.z + z) * 32);
-                        Mesh m = gpuGen.GenerateChunkSync(new int3(32, 32, 32), worldPos, _currentAsset, settings);
+                        int3 chunkPos = new int3((_previewChunkPos.x + x) * 32, y * 32, (_previewChunkPos.z + z) * 32);
+                        Mesh m = gpuGen.GenerateChunkSync(new int3(32, 32, 32), chunkPos, _currentAsset, settings);
                         if (m != null && m.vertexCount > 0)
                         {
                             combines.Add(new CombineInstance { mesh = m, transform = Matrix4x4.Translate(new Vector3(x * 32, y * 32, z * 32)) });
@@ -191,32 +210,58 @@
 
             if (_previewMesh != null) DestroyImmediate(_previewMesh);
             _previewMesh = new Mesh() { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
-            if (combines.Count > 0) _previewMesh.CombineMeshes(combines.ToArray());
+            if (combines.Count > 0)
+            {
+                _previewMesh.CombineMeshes(combines.ToArray(), true, true);
+                _previewMesh.RecalculateBounds();
+            }
 
             gpuGen.Dispose();
             _3dPreviewContainer.MarkDirtyRepaint();
         }
 
+        private float _previewZoom = 150f; // Переменная для зума
+
         private void Draw3DPreview()
         {
             Rect rect = _3dPreviewContainer.contentRect;
-            if (rect.width <= 0 || _previewMesh == null) return;
+            if (rect.width <= 0 || rect.height <= 0) return;
 
             Event e = Event.current;
-            if (e.type == EventType.MouseDrag && rect.Contains(e.mousePosition))
+            if (rect.Contains(e.mousePosition))
             {
-                _previewDragRotation.x += e.delta.y * 0.8f; _previewDragRotation.y += e.delta.x * 0.8f;
-                e.Use(); _3dPreviewContainer.MarkDirtyRepaint();
+                if (e.type == EventType.MouseDrag)
+                {
+                    _previewDragRotation.x += e.delta.y * 0.8f;
+                    _previewDragRotation.y += e.delta.x * 0.8f;
+                    e.Use();
+                    _3dPreviewContainer.MarkDirtyRepaint();
+                }
+                // ДОБАВЛЯЕМ ЗУМ
+                if (e.type == EventType.ScrollWheel)
+                {
+                    _previewZoom += e.delta.y * 5f;
+                    _previewZoom = Mathf.Clamp(_previewZoom, 10f, 1000f);
+                    e.Use();
+                    _3dPreviewContainer.MarkDirtyRepaint();
+                }
             }
 
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
-            float centerY = (_minPreviewY + _maxPreviewY) * 16f;
-            Vector3 focus = new Vector3(0, centerY, 0);
-            Quaternion camRot = Quaternion.Euler(_previewDragRotation.x, _previewDragRotation.y, 0);
-            _previewRenderUtility.camera.transform.position = focus + camRot * new Vector3(0, 0, -200 - (_previewRenderDistance3D * 40));
-            _previewRenderUtility.camera.transform.LookAt(focus);
 
-            _previewRenderUtility.DrawMesh(_previewMesh, Matrix4x4.identity, _previewMaterial, 0);
+            if (_previewMesh != null && _previewMesh.vertexCount > 0)
+            {
+                // Центрируем камеру на середине вертикального столба
+                float centerY = (_minPreviewY + _maxPreviewY) * 16f;
+                Vector3 focus = new Vector3(0, centerY, 0);
+
+                Quaternion camRot = Quaternion.Euler(_previewDragRotation.x, _previewDragRotation.y, 0);
+                _previewRenderUtility.camera.transform.position = focus + camRot * new Vector3(0, 0, -_previewZoom);
+                _previewRenderUtility.camera.transform.LookAt(focus);
+
+                _previewRenderUtility.DrawMesh(_previewMesh, Matrix4x4.identity, _previewMaterial, 0);
+            }
+
             _previewRenderUtility.camera.Render();
             GUI.DrawTexture(rect, _previewRenderUtility.EndPreview());
         }
@@ -355,52 +400,155 @@
         private string SerializeNodeData(VoxelNode node)
         {
             var c = CultureInfo.InvariantCulture;
-            if (node is ConstantNode cn) return $"Const|{cn.Value.ToString(c)}";
-            if (node is Vector3Node v3n) return $"Vec3|{v3n.Value.x.ToString(c)}|{v3n.Value.y.ToString(c)}|{v3n.Value.z.ToString(c)}";
-            if (node is AdvancedNoiseNode adv) return $"AdvNoise|{adv.SelectedType}|{adv.Scale.ToString(c)}|{adv.Octaves}|{adv.Persistence.ToString(c)}|{adv.Lacunarity.ToString(c)}|{adv.Offset.x.ToString(c)}|{adv.Offset.y.ToString(c)}|{adv.Offset.z.ToString(c)}";
-            if (node is NoiseNode n) return $"Noise|{n.SelectedType}|{n.Scale.ToString(c)}";
-            if (node is MathNode m) return $"Math|{m.Operation}";
-            if (node is BiomeNode b) return $"Biome|{b.TargetTemp.ToString(c)}|{b.TexIndexR}|{b.TexIndexG}|{b.TexIndexB}|{b.TexIndexA}";
-            if (node is ColorNode col) return $"Color|{col.Value.r.ToString(c)}|{col.Value.g.ToString(c)}|{col.Value.b.ToString(c)}";
-            if (node is CoordinateNode coord) return $"Coord|{coord.X.ToString(c)}|{coord.Y.ToString(c)}|{coord.Z.ToString(c)}";
-            if (node is TextureSlotNode ts) return $"TexSlot|{ts.SelectedSlot}";
-            if (node is TextureLayerNode tln) return "LayerMixer|" + JsonUtility.ToJson(tln);
-            if (node is OctaveNoiseNode oct) return $"Octave|{oct.SelectedType}|{oct.Octaves}|{oct.Persistence.ToString(c)}|{oct.Scale.ToString(c)}";
+
+            if (node is ConstantNode cn)
+                return $"Const|{cn.Value.ToString("F4", c)}";
+
+            if (node is AdvancedNoiseNode adv)
+                return $"AdvNoise|{adv.SelectedType}|{adv.Scale.ToString("F4", c)}|{adv.Octaves}|{adv.Persistence.ToString("F4", c)}|{adv.Lacunarity.ToString("F4", c)}|{adv.Offset.x.ToString("F4", c)}|{adv.Offset.y.ToString("F4", c)}|{adv.Offset.z.ToString("F4", c)}";
+
+            if (node is NoiseNode n)
+                return $"Noise|{n.SelectedType}|{n.Scale.ToString("F4", c)}";
+
+            if (node is OctaveNoiseNode oct)
+                return $"Octave|{oct.SelectedType}|{oct.Octaves}|{oct.Persistence.ToString("F4", c)}|{oct.Scale.ToString("F4", c)}";
+
+            if (node is MathNode m)
+                return $"Math|{m.Operation}";
+
+            if (node is BiomeNode b)
+                return $"Biome|{b.TargetTemp.ToString("F3", c)}|{b.TexIndexR}|{b.TexIndexG}|{b.TexIndexB}|{b.TexIndexA}";
+
+            if (node is ColorNode col)
+                return $"Color|{col.Value.r.ToString("F3", c)}|{col.Value.g.ToString("F3", c)}|{col.Value.b.ToString("F3", c)}";
+
+            if (node is CoordinateNode coord)
+                return $"Coord|{coord.X.ToString("F4", c)}|{coord.Y.ToString("F4", c)}|{coord.Z.ToString("F4", c)}";
+
+            if (node is TextureSlotNode ts)
+                return $"TexSlot|{ts.SelectedSlot}";
+
+            if (node is TextureLayerNode tln)
+                return "LayerMixer|" + JsonUtility.ToJson(tln);
+
+            if (node is Vector3Node v3n)
+                return $"Vec3|{v3n.Value.x.ToString("F4", c)}|{v3n.Value.y.ToString("F4", c)}|{v3n.Value.z.ToString("F4", c)}";
+
             return "None";
         }
 
         private void DeserializeNodeData(VoxelNode node, string data)
         {
             if (string.IsNullOrEmpty(data) || data == "None") return;
-            var p = data.Split('|'); var c = CultureInfo.InvariantCulture;
+            var p = data.Split('|');
+            var c = CultureInfo.InvariantCulture;
+
             try
             {
-                if (p[0] == "Const" && node is ConstantNode cn) cn.Value = float.Parse(p[1], c);
-                else if (p[0] == "Vec3" && node is Vector3Node v3) v3.Value = new Vector3(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c));
+                if (p[0] == "Const" && node is ConstantNode cn)
+                {
+                    cn.Value = float.Parse(p[1], c);
+                }
+                else if (p[0] == "Noise" && node is NoiseNode noise)
+                {
+                    noise.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    noise.Scale = float.Parse(p[2], c);
+                }
                 else if (p[0] == "AdvNoise" && node is AdvancedNoiseNode adv)
                 {
-                    adv.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]); adv.Scale = float.Parse(p[2], c);
-                    adv.Octaves = int.Parse(p[3]); adv.Persistence = float.Parse(p[4], c); adv.Lacunarity = float.Parse(p[5], c);
+                    adv.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    adv.Scale = float.Parse(p[2], c);
+                    adv.Octaves = int.Parse(p[3]);
+                    adv.Persistence = float.Parse(p[4], c);
+                    adv.Lacunarity = float.Parse(p[5], c);
                     adv.Offset = new Vector3(float.Parse(p[6], c), float.Parse(p[7], c), float.Parse(p[8], c));
                 }
-                else if (p[0] == "LayerMixer" && node is TextureLayerNode tln) JsonUtility.FromJsonOverwrite(p[1], tln);
-                else if (p[0] == "Coord" && node is CoordinateNode coord) { coord.X = float.Parse(p[1], c); coord.Y = float.Parse(p[2], c); coord.Z = float.Parse(p[3], c); }
-                else if (p[0] == "Noise" && node is NoiseNode noise) { noise.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]); noise.Scale = float.Parse(p[2], c); }
-                else if (p[0] == "Math" && node is MathNode math) math.SetOperation((MathType)System.Enum.Parse(typeof(MathType), p[1]));
+                else if (p[0] == "Octave" && node is OctaveNoiseNode oct)
+                {
+                    oct.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]);
+                    oct.Octaves = int.Parse(p[2]);
+                    oct.Persistence = float.Parse(p[3], c);
+                    oct.Scale = float.Parse(p[4], c);
+                }
+                else if (p[0] == "Math" && node is MathNode math)
+                {
+                    math.SetOperation((MathType)System.Enum.Parse(typeof(MathType), p[1]));
+                }
                 else if (p[0] == "Biome" && node is BiomeNode b)
                 {
                     b.TargetTemp = float.Parse(p[1], c);
-                    if (p.Length >= 6) { b.TexIndexR = int.Parse(p[2]); b.TexIndexG = int.Parse(p[3]); b.TexIndexB = int.Parse(p[4]); b.TexIndexA = int.Parse(p[5]); }
+                    b.TexIndexR = int.Parse(p[2]);
+                    b.TexIndexG = int.Parse(p[3]);
+                    b.TexIndexB = int.Parse(p[4]);
+                    b.TexIndexA = int.Parse(p[5]);
                 }
-                else if (p[0] == "Color" && node is ColorNode col) col.Value = new Color(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c), 1f);
-                else if (p[0] == "TexSlot" && node is TextureSlotNode ts) ts.SelectedSlot = (TextureSlotNode.SlotIndex)System.Enum.Parse(typeof(TextureSlotNode.SlotIndex), p[1]);
-                else if (p[0] == "Octave" && node is OctaveNoiseNode oct)
+                else if (p[0] == "Color" && node is ColorNode col)
                 {
-                    oct.SelectedType = (NoiseType)System.Enum.Parse(typeof(NoiseType), p[1]); oct.Octaves = int.Parse(p[2]);
-                    oct.Persistence = float.Parse(p[3], c); oct.Scale = float.Parse(p[4], c);
+                    col.Value = new Color(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c), 1f);
                 }
+                else if (p[0] == "Coord" && node is CoordinateNode coord)
+                {
+                    coord.X = float.Parse(p[1], c);
+                    coord.Y = float.Parse(p[2], c);
+                    coord.Z = float.Parse(p[3], c);
+                }
+                else if (p[0] == "TexSlot" && node is TextureSlotNode ts)
+                {
+                    ts.SelectedSlot = (TextureSlotNode.SlotIndex)System.Enum.Parse(typeof(TextureSlotNode.SlotIndex), p[1]);
+                }
+                else if (p[0] == "LayerMixer" && node is TextureLayerNode tln)
+                {
+                    JsonUtility.FromJsonOverwrite(p[1], tln);
+                }
+                else if (p[0] == "Vec3" && node is Vector3Node v3)
+                {
+                    v3.Value = new Vector3(float.Parse(p[1], c), float.Parse(p[2], c), float.Parse(p[3], c));
+                }
+
+                // КРИТИЧЕСКИ ВАЖНО: Вызываем обновление UI после загрузки данных
+                node.RefreshUI();
             }
-            catch { }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Ошибка десериализации ноды {p[0]}: {ex.Message}");
+            }
+        }
+
+        private Shader GetPreviewShader()
+        {
+            // Простейший шейдер, который просто рисует цвет вершин (Vertex Color)
+            string shaderCode = @"
+    Shader ""Hidden/VoxelPreview"" {
+        SubShader {
+            Pass {
+                CGPROGRAM
+                #pragma vertex vert
+                #pragma fragment frag
+                #include ""UnityCG.cginc""
+                struct appdata { float4 vertex : POSITION; float4 color : COLOR; };
+                struct v2f { float4 pos : SV_POSITION; float4 col : COLOR; };
+                v2f vert (appdata v) {
+                    v2f o;
+                    o.pos = UnityObjectToClipPos(v.vertex);
+                    o.col = v.color;
+                    return o;
+                }
+                fixed4 frag (v2f i) : SV_Target { return i.col; }
+                ENDCG
+            }
+        }
+    }";
+            return ShaderUtil.CreateShaderAsset(shaderCode);
+        }
+        private WorldManager GetWorldManager()
+        {
+            var manager = FindObjectOfType<WorldManager>();
+            if (manager == null)
+            {
+                // Если менеджера нет на сцене, используем дефолтные настройки
+                return null;
+            }
+            return manager;
         }
     }
 }

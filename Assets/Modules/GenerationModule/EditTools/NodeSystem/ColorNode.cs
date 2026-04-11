@@ -35,7 +35,7 @@
             return "";
         }
 
-        public void RefreshUI()
+        public override void RefreshUI()
         {
             var field = mainContainer.Query<ColorField>().First();
             if (field != null) field.value = Value;

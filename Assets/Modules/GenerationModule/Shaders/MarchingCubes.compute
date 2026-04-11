@@ -177,8 +177,8 @@ void GenerateDensity(uint3 id : SV_DispatchThreadID)
     float density = 0;
 
     // [NODE_GRAPH_START]
-float adv_noise_0 = PerlinNoise_Octaves(worldPos, 0.0100, float3(0.00, 0.00, 0.00), uint(4), 2.0000, 0.5000, 1.0);
-float math_1 = adv_noise_0 * 25.0000f;
+float adv_noise_0 = PerlinNoise_Octaves(worldPos, 0.0050, float3(0.00, 0.00, 0.00), uint(4), 2.0000, 0.5000, 1.0);
+float math_1 = adv_noise_0 * 40.0000f;
 float math_2 = 40.0000f - worldPos.y;
 float math_3 = math_1 + math_2;
 

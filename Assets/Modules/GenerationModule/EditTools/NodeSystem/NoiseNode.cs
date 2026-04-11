@@ -53,7 +53,7 @@
             return $"float {varName} = {func}(worldPos * {s});\n";
         }
 
-        public void RefreshUI()
+        public override void RefreshUI()
         {
             var enumField = mainContainer.Query<EnumField>().First();
             if (enumField != null) enumField.value = SelectedType;

@@ -67,8 +67,8 @@ Shader "Custom/VoxelTriplanar"
                 float3 finalColor = float3(0,0,0);
 
                 // [GENERATED_BIOME_LOGIC_START]
-float noise_0 = PerlinNoise(worldPos * 0.0100);
-float clamp_1 = clamp(noise_0, 0.0010f, 1.0000f);
+float noise_0 = PerlinNoise(worldPos * 0.0010);
+float clamp_1 = clamp(noise_0, 0.0000f, 1.0000f);
 
     float nSel_2 = saturate(clamp_1 * 0.5 + 0.5);
 
