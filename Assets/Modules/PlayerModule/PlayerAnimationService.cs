@@ -1,7 +1,7 @@
 namespace Assets.Modules.PlayerModule
 {
     using UnityEngine;
-    public class PlayerAnimation : MonoBehaviour
+    public class PlayerAnimationService : MonoBehaviour
     {
         public Animator _animator;
 

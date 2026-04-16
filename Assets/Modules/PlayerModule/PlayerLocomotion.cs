@@ -1,7 +1,3 @@
-using System;
-using Unity.VisualScripting;
-using UnityEngine;
-
 namespace Assets.Modules.PlayerModule
 {
     using Cysharp.Threading.Tasks;
@@ -10,19 +6,14 @@ namespace Assets.Modules.PlayerModule
     using UnityEngine.InputSystem;
 
     [RequireComponent(typeof(CharacterController))]
-    [RequireComponent(typeof(PlayerAnimation))]
+    [RequireComponent(typeof(PlayerAnimationService))]
     public class PlayerLocomotion : MonoBehaviour
     {
         [Header("DoNotTouch")]
         public Vector2 MovementVector { get; set; } = Vector2.zero;
         public Vector2 LookVectorDelta {get;set;} = Vector2.zero;
-        //private float _xRotation = 0f;
-        //private float _yRotation = 0f;
+
         private CancellationTokenSource _crouchCTS;
-
-        //private Vector2 _currentMouseDelta;
-        //private Vector2 _currentMouseDeltaVelocity;
-
 
         [Header("Movement")]
         [SerializeField] private float _gravity = -30f;
@@ -45,12 +36,6 @@ namespace Assets.Modules.PlayerModule
         private bool isCrouching = false;
         private bool _isInDuckPosition = false;
 
-        [Header("Look")]
-        [SerializeField] private float _maxLookAngle = 80f;
-        [SerializeField] private float _minLookAngle = -80f;
-        [SerializeField] private float _sensetivity = 1f;
-        [SerializeField] private float _lookSmoothTime = 0.01f;
-
         [Header("CameraPhysics")]
         [SerializeField] private float _headSize = 0.25f;
         [SerializeField] private float _bodySize = 1.75f;
@@ -60,7 +45,7 @@ namespace Assets.Modules.PlayerModule
         [SerializeField] private float _crouchSmoothTime = 0.05f;
 
         [Header("Animation")] 
-        [SerializeField] private PlayerAnimation _playerAnimation;
+        [SerializeField] private PlayerAnimationService _playerAnimation;
 
         [SerializeField] private PlayerCameraService _playerCamera;
 
@@ -74,7 +59,7 @@ namespace Assets.Modules.PlayerModule
             _selectedSpeed = _walkSpeed;
             if (_controller == null) _controller = GetComponent<CharacterController>();
             if (_camera == null) _camera = GetComponent<Camera>();
-            if (_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimation>();
+            if (_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimationService>();
             if (_playerCamera == null) _playerCamera = GetComponent<PlayerCameraService>();
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -82,8 +67,7 @@ namespace Assets.Modules.PlayerModule
 
         private void Update()
         {
-            //Look();
-            _playerCamera.Look(LookVectorDelta);
+            _playerCamera.LookFPP(LookVectorDelta);
             Move();
         }
 
@@ -226,28 +210,5 @@ namespace Assets.Modules.PlayerModule
             _controller.Move(finalVelocity * Time.deltaTime);
             _playerAnimation.UpdateAnimatorValues(MovementVector.x, MovementVector.y, _selectedSpeed == _runSpeed, _isInDuckPosition, _controller.isGrounded);
         }
-
-        /// <summary>
-        /// Look action.
-        /// </summary>
-        /*
-        public void Look()
-        {
-            _currentMouseDelta = Vector2.SmoothDamp(_currentMouseDelta, LookVectorDelta, ref _currentMouseDeltaVelocity, _lookSmoothTime);
-
-            float mouseX = _currentMouseDelta.x * _sensetivity/4;
-            float mouseY = _currentMouseDelta.y * _sensetivity/4;
-
-            _yRotation += mouseX;
-            _xRotation -= mouseY;
-
-            _xRotation = Mathf.Clamp(_xRotation, _minLookAngle, _maxLookAngle);
-
-            _camera.transform.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
-
-            transform.localRotation = Quaternion.Euler(0f, _yRotation, 0f);
-        }
-        */
-
     }
 }

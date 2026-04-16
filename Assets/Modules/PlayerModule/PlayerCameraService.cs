@@ -20,7 +20,7 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Look action.
         /// </summary>
-        public void Look(Vector2 LookVectorDelta)
+        public void LookFPP(Vector2 LookVectorDelta)
         {
             _currentMouseDelta = Vector2.SmoothDamp(_currentMouseDelta, LookVectorDelta, ref _currentMouseDeltaVelocity, _lookSmoothTime);
 
