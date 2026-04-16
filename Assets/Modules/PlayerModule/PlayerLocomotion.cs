@@ -61,13 +61,12 @@ namespace Assets.Modules.PlayerModule
             if (_camera == null) _camera = GetComponent<Camera>();
             if (_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimationService>();
             if (_playerCamera == null) _playerCamera = GetComponent<PlayerCameraService>();
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            _playerCamera.Instantiate();
         }
 
         private void Update()
         {
-            _playerCamera.LookFPP(LookVectorDelta);
+            _playerCamera.Look(LookVectorDelta);
             Move();
         }
 

@@ -194,10 +194,6 @@ MonoBehaviour:
   _acceleration: 10
   _deceleration: 10
   _airControlMultiplier: 0.2
-  _maxLookAngle: 80
-  _minLookAngle: -80
-  _sensetivity: 1
-  _lookSmoothTime: 0.01
   _headSize: 0.25
   _bodySize: 1.75
   _crouchToStandRatio: 0.4
@@ -296,6 +292,11 @@ MonoBehaviour:
   _minLookAngle: -80
   _sensetivity: 1
   _lookSmoothTime: 0.01
+  _fppOffset: {x: 0, y: 0.592, z: 0}
+  _ttpOffset: {x: -3, y: 1.5, z: 0}
+  _ttpRotation: {x: 0, y: 90, z: 0}
+  _ttpParent: {fileID: 208961342}
+  _lookType: 1
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -362,7 +363,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 63
+    m_Bits: 191
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
