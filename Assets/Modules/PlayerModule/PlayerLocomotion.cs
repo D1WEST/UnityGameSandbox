@@ -16,12 +16,12 @@ namespace Assets.Modules.PlayerModule
         [Header("DoNotTouch")]
         public Vector2 MovementVector { get; set; } = Vector2.zero;
         public Vector2 LookVectorDelta {get;set;} = Vector2.zero;
-        private float _xRotation = 0f;
-        private float _yRotation = 0f;
+        //private float _xRotation = 0f;
+        //private float _yRotation = 0f;
         private CancellationTokenSource _crouchCTS;
 
-        private Vector2 _currentMouseDelta;
-        private Vector2 _currentMouseDeltaVelocity;
+        //private Vector2 _currentMouseDelta;
+        //private Vector2 _currentMouseDeltaVelocity;
 
 
         [Header("Movement")]
@@ -62,19 +62,28 @@ namespace Assets.Modules.PlayerModule
         [Header("Animation")] 
         [SerializeField] private PlayerAnimation _playerAnimation;
 
+        [SerializeField] private PlayerCameraService _playerCamera;
+
         private void Start()
+        {
+            BuildCharacter();
+        }
+
+        private void BuildCharacter()
         {
             _selectedSpeed = _walkSpeed;
             if (_controller == null) _controller = GetComponent<CharacterController>();
             if (_camera == null) _camera = GetComponent<Camera>();
-            if(_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimation>();
+            if (_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimation>();
+            if (_playerCamera == null) _playerCamera = GetComponent<PlayerCameraService>();
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
 
         private void Update()
         {
-            Look();
+            //Look();
+            _playerCamera.Look(LookVectorDelta);
             Move();
         }
 
@@ -221,6 +230,7 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Look action.
         /// </summary>
+        /*
         public void Look()
         {
             _currentMouseDelta = Vector2.SmoothDamp(_currentMouseDelta, LookVectorDelta, ref _currentMouseDeltaVelocity, _lookSmoothTime);
@@ -237,6 +247,7 @@ namespace Assets.Modules.PlayerModule
 
             transform.localRotation = Quaternion.Euler(0f, _yRotation, 0f);
         }
+        */
 
     }
 }
