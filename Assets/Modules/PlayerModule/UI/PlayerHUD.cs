@@ -17,6 +17,7 @@ public class PlayerHUD : MonoBehaviour
     private Label _hpLabel, _staminaLabel;
     private List<VisualElement> _hpSegments = new List<VisualElement>();
     private List<VisualElement> _staminaSegments = new List<VisualElement>();
+    [SerializeField] private Color emptySegmentColor = new Color(1, 1, 1, 0.07f);
 
     private int _lastHpActive = -1;
     private int _lastStaminaActive = -1;
@@ -54,32 +55,39 @@ public class PlayerHUD : MonoBehaviour
 
     void UpdateBar(float value, List<VisualElement> segments, Label label, ref int lastActive, bool isHp)
     {
-        int activeCount = Mathf.RoundToInt((value / 100f) * segmentsCount);
+        int activeCount = Mathf.CeilToInt((value / 100f) * segmentsCount);
         label.text = Mathf.FloorToInt(value).ToString();
 
-        // Если количество сегментов изменилось — запускаем тряску
-        if (activeCount != lastActive && lastActive != -1)
+        // Эффект тряски при изменении (оставляем как был)
+        if (lastActive != -1 && activeCount != lastActive)
         {
-            int indexToShake = (activeCount < lastActive) ? lastActive - 1 : activeCount - 1;
-            if (indexToShake >= 0 && indexToShake < segments.Count)
-            {
-                StartCoroutine(ShakeElement(segments[indexToShake]));
-            }
+            // Трясем тот сегмент, который изменил состояние
+            int index = (activeCount < lastActive) ? lastActive - 1 : activeCount - 1;
+            if (index >= 0 && index < segments.Count)
+                StartCoroutine(ShakeElement(segments[index]));
         }
         lastActive = activeCount;
 
-        Color color = isHp ? GetHpColor(value / 100f) : GetStaminaColor(value / 100f);
+        Color activeColor = isHp ? GetHpColor(value / 100f) : GetStaminaColor(value / 100f);
 
         for (int i = 0; i < segments.Count; i++)
         {
+            // Теперь все сегменты ВСЕГДА Flex (видимы)
+            segments[i].style.display = DisplayStyle.Flex;
+
             if (i < activeCount)
             {
-                segments[i].style.display = DisplayStyle.Flex;
-                segments[i].style.backgroundColor = color;
+                // Активные сегменты красятся в яркий цвет
+                segments[i].style.backgroundColor = activeColor;
+                // Можно добавить небольшое свечение или масштаб для активных
+                segments[i].transform.scale = new Vector3(1f, 1f, 1f);
             }
             else
             {
-                segments[i].style.display = DisplayStyle.None;
+                // Неактивные сегменты становятся тусклыми "слотами"
+                segments[i].style.backgroundColor = emptySegmentColor;
+                // Немного уменьшаем пустые ячейки для визуального отличия
+                segments[i].transform.scale = new Vector3(0.95f, 0.95f, 1f);
             }
         }
     }

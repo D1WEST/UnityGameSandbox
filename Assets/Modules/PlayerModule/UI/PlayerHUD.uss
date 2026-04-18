@@ -30,14 +30,19 @@
 }
 
 /* Настройки самих сегментов */
+/* Основной вид сегмента теперь по умолчанию "выключенный" */
 .segment {
-    width: 16px;
-    height: 35px;
-    margin-right: 4px;
-    background-color: white; /* Цвет будет перекрашиваться скриптом */
-    border-top-right-radius: 4px;
-    border-bottom-left-radius: 4px;
-    /* Плавный переход для цвета */
-    transition-property: background-color;
-    transition-duration: 0.2s;
+    width: 18px;
+    height: 38px;
+    margin-right: 5px;
+    /* Цвет пустой ячейки: очень слабый белый/серый */
+    background-color: rgba(255, 255, 255, 0.07); 
+    border-top-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    
+    transition-property: background-color, scale;
+    transition-duration: 0.1s;
 }
+
+/* Мы больше не используем DisplayStyle.None в коде, 
+   поэтому сегменты всегда будут в ряд. */
