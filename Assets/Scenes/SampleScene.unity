@@ -293,9 +293,8 @@ MonoBehaviour:
   _sensetivity: 1
   _lookSmoothTime: 0.01
   _fppOffset: {x: 0, y: 0.592, z: 0}
-  _ttpOffset: {x: -3, y: 1.5, z: 0}
-  _ttpRotation: {x: 0, y: 90, z: 0}
-  _ttpParent: {fileID: 208961342}
+  _ttpOffset: {x: -5, y: 2, z: 0}
+  _ttpRotation: {x: 20, y: 90, z: 0}
   _lookType: 1
 --- !u!1 &330585543
 GameObject:

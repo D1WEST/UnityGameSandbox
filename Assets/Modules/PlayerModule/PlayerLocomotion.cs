@@ -66,8 +66,8 @@ namespace Assets.Modules.PlayerModule
 
         private void Update()
         {
-            _playerCamera.Look(LookVectorDelta);
-            Move();
+            _playerCamera.Look(_playerCamera.SelectOperatingVector(LookVectorDelta, MovementVector));
+            Move(_playerCamera._lookType);
         }
 
         /// <summary>
@@ -183,13 +183,14 @@ namespace Assets.Modules.PlayerModule
         /// <summary>
         /// Move action.
         /// </summary>
-        public void Move()
+        public void Move(LookType lookType)
         {
             if (_controller.isGrounded && _velocity.y < 0)
             {
                 _velocity.y = -2f;
             }
-            Vector3 inputDirection = transform.right * MovementVector.x + transform.forward * MovementVector.y;
+
+            Vector3 inputDirection = SelectMovementInputVector(lookType);
             if (inputDirection.magnitude > 1f)
             {
                 inputDirection.Normalize();
@@ -207,7 +208,45 @@ namespace Assets.Modules.PlayerModule
             _velocity.y += _gravity * Time.deltaTime;
             Vector3 finalVelocity = _currentHorizontalVelocity + new Vector3(0, _velocity.y, 0);
             _controller.Move(finalVelocity * Time.deltaTime);
-            _playerAnimation.UpdateAnimatorValues(MovementVector.x, MovementVector.y, _selectedSpeed == _runSpeed, _isInDuckPosition, _controller.isGrounded);
+            SelectUpdateAnimatorValues(_playerCamera._lookType);
+        }
+
+        /// <summary>
+        /// Выбирает вектор 
+        /// </summary>
+        /// <param name="lookType"></param>
+        /// <returns></returns>
+        private void SelectUpdateAnimatorValues(LookType lookType)
+        {
+            switch (lookType)
+            {
+                case LookType.FPP:
+                    _playerAnimation.UpdateAnimatorValues(MovementVector.x, MovementVector.y, _selectedSpeed == _runSpeed, _isInDuckPosition, _controller.isGrounded);
+                    break;
+                case LookType.TTP:
+                    _playerAnimation.UpdateAnimatorValues(0, Mathf.Clamp((Mathf.Abs(MovementVector.x) + Mathf.Abs(MovementVector.y))/2,-1,1), _selectedSpeed == _runSpeed, _isInDuckPosition, _controller.isGrounded);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Выбирает вектор 
+        /// </summary>
+        /// <param name="lookType"></param>
+        /// <returns></returns>
+        private Vector3 SelectMovementInputVector(LookType lookType)
+        {
+            switch (lookType)
+            {
+                case LookType.FPP:
+                    return transform.right * MovementVector.x + transform.forward * MovementVector.y;
+
+                case LookType.TTP:
+                    return new Vector3(MovementVector.y, 0f, -MovementVector.x).normalized;
+
+                default:
+                    return Vector3.forward;
+            }
         }
     }
 }

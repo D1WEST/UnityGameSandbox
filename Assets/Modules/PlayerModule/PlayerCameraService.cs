@@ -8,6 +8,7 @@ namespace Assets.Modules.PlayerModule
         FPP,
         TTP
     }
+
     public class PlayerCameraService : MonoBehaviour
     {
         [SerializeField] private Camera _camera;
@@ -17,24 +18,25 @@ namespace Assets.Modules.PlayerModule
         [SerializeField] private float _minLookAngle = -80f;
         [SerializeField] private float _sensetivity = 1f;
         [SerializeField] private float _lookSmoothTime = 0.01f;
-        [SerializeField] private Vector3 _fppOffset  = new Vector3(0, 0.592f, 0);
-        [SerializeField] private Vector3 _ttpOffset = new Vector3(-3f, 1.5f, 0);
-        [SerializeField] private Vector3 _ttpRotation = new Vector3(0f, 90f, 0);
 
+        [Header("FPP Settings")]
+        [SerializeField] private Vector3 _fppOffset = new Vector3(0, 0.592f, 0);
 
-        [Header("Parenting dot")]
-        [SerializeField] private Transform _ttpParent;
+        [Header("TTP Settings")]
+        [SerializeField] private Vector3 _ttpOffset = new Vector3(0f, 10f, -5f); // Настрой под себя (Высота и отдаление)
+        [SerializeField] private Vector3 _ttpRotation = new Vector3(60f, 0f, 0); // Смотрит вниз под углом
 
         [Header("Look type")]
-        [SerializeField] private LookType _lookType = LookType.FPP;
+        [SerializeField] public LookType _lookType = LookType.FPP;
 
         private Action<Vector2> _lookAction;
-
         private float _xRotation = 0f;
         private float _yRotation = 0f;
         private Vector2 _currentMouseDelta;
         private Vector2 _currentMouseDeltaVelocity;
 
+        // Переменная для плавного поворота персонажа в TTP
+        private float _turnSmoothVelocity;
 
         public void Instantiate()
         {
@@ -42,87 +44,79 @@ namespace Assets.Modules.PlayerModule
             SetLookDefaults(_lookType);
         }
 
-
-        
-
-        /// <summary>
-        /// Unified look action.
-        /// </summary>
-        /// <param name="lookVectorDelta"></param>
         public void Look(Vector2 lookVectorDelta)
         {
-            _lookAction.Invoke(lookVectorDelta);
+            _lookAction?.Invoke(lookVectorDelta);
         }
 
-        /// <summary>
-        /// Changes eefaults of camera placement and mask/
-        /// </summary>
-        /// <param name="lookType">Looktype to change.</param>
+        // В LateUpdate мы двигаем камеру ЗА игроком, но НЕ крутим её
+        private void LateUpdate()
+        {
+            if (_lookType == LookType.TTP)
+            {
+                // Камера просто висит со смещением от глобальной позиции игрока
+                _camera.transform.position = transform.position + _ttpOffset;
+            }
+        }
+
         private void SetLookDefaults(LookType lookType)
         {
             switch (lookType)
             {
                 case LookType.FPP:
-                    SetCameraParent(transform, _fppOffset, Vector3.zero);
+                    // В первом лице камера жестко привязана к игроку
+                    _camera.transform.SetParent(transform);
+                    _camera.transform.localPosition = _fppOffset;
+                    _camera.transform.localRotation = Quaternion.identity;
+
                     gameObject.layer = 6;
-                    foreach (var child in gameObject.GetComponentsInChildren<Transform>())
-                    {
-                        child.gameObject.layer = 6;
-                    }
+                    SetLayerRecursively(gameObject, 6);
+
                     Cursor.lockState = CursorLockMode.Locked;
                     Cursor.visible = false;
                     break;
+
                 case LookType.TTP:
-                    SetCameraParent(transform, _ttpOffset, _ttpRotation);
+                    // В третьем лице мы ОТВЯЗЫВАЕМ камеру от игрока, чтобы она не крутилась вместе с ним
+                    _camera.transform.SetParent(null);
+                    _camera.transform.rotation = Quaternion.Euler(_ttpRotation);
+
                     gameObject.layer = 7;
-                    foreach (var child in gameObject.GetComponentsInChildren<Transform>())
-                    {
-                        child.gameObject.layer = 7;
-                    }
+                    SetLayerRecursively(gameObject, 7);
+
                     Cursor.lockState = CursorLockMode.Confined;
                     Cursor.visible = true;
                     break;
-                default:
-                    break;
+            }
+        }
 
-
+        private void SetLayerRecursively(GameObject obj, int newLayer)
+        {
+            foreach (Transform child in obj.GetComponentsInChildren<Transform>(true))
+            {
+                child.gameObject.layer = newLayer;
             }
         }
 
         private void ChangeLookPerspective(LookType lookType)
         {
-
+            _lookType = lookType;
             switch (lookType)
             {
                 case LookType.FPP:
-                    _lookType = lookType;
                     _lookAction = LookFPP;
                     break;
                 case LookType.TTP:
-                    _lookType = lookType;
                     _lookAction = LookTTP;
-                    break;
-                default:
                     break;
             }
         }
 
-        /// <summary>
-        /// Sets parent to camera.
-        /// </summary>
-        /// <param name="parent">New parent.</param>
-        /// <param name="offset">Local camera offset.</param>
-        /// <param name="rotation">Local camera rot.</param>
-        private void SetCameraParent(Transform parent, Vector3 offset, Vector3 rotation)
+        public Vector2 SelectOperatingVector(Vector2 lookVector, Vector2 moveVector)
         {
-            _camera.transform.SetParent(parent);
-            _camera.transform.localPosition = offset;
-            _camera.transform.localRotation = Quaternion.Euler(rotation);
+            return _lookType == LookType.FPP ? lookVector : moveVector;
         }
 
-        /// <summary>
-        /// First person look action.
-        /// </summary>
         private void LookFPP(Vector2 LookVectorDelta)
         {
             _currentMouseDelta = Vector2.SmoothDamp(_currentMouseDelta, LookVectorDelta, ref _currentMouseDeltaVelocity, _lookSmoothTime);
@@ -132,20 +126,24 @@ namespace Assets.Modules.PlayerModule
 
             _yRotation += mouseX;
             _xRotation -= mouseY;
-
             _xRotation = Mathf.Clamp(_xRotation, _minLookAngle, _maxLookAngle);
 
             _camera.transform.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
-
             transform.localRotation = Quaternion.Euler(0f, _yRotation, 0f);
         }
 
-        /// <summary>
-        /// Third top person look action.
-        /// </summary>
-        private void LookTTP(Vector2 LookVectorDelta)
+        private void LookTTP(Vector2 MovementVector)
         {
-            
+            if (MovementVector.sqrMagnitude < 0.01f)
+                return;
+            Vector2 resultMovementVector = new Vector3(MovementVector.y, -MovementVector.x);
+
+            // Вычисляем угол поворота на основе WASD (Вектор движения)
+            float targetAngle = Mathf.Atan2(resultMovementVector.x, resultMovementVector.y) * Mathf.Rad2Deg;
+
+            // Плавно поворачиваем персонажа в сторону движения
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref _turnSmoothVelocity, 0.1f);
+            transform.rotation = Quaternion.Euler(0f, angle, 0f);
         }
     }
 }

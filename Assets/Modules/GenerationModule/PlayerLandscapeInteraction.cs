@@ -48,7 +48,7 @@
                 return;
             }
 
-            _camera = gameObject.GetComponentInChildren<Camera>();
+            _camera = GameObject.FindWithTag("PlayerCamera").GetComponent<Camera>();
             terrainModifier = new TerrainModifier(worldManager);
         }
 
