@@ -77,48 +77,50 @@ namespace Assets.Modules.PlayerModule
         /// <param name="targetY">Target position.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns></returns>
-        private async UniTask SmoothCameraCrouch(bool endingCrouch,float targetY, CancellationToken ct)
+        private async UniTask SmoothCameraCrouch(bool endingCrouch, float targetCamY, CancellationToken ct)
         {
-            // »спользуем Transform.localPosition напр€мую дл€ скорости
-            Transform camTransform = _camera.transform;
-            float currentVelocity = 0f;
+            float currentVelocityHeight = 0f;
+            float currentVelocityCenter = 0f;
+            float currentVelocityCam = 0f;
 
-            // ÷икл работает, пока не достигнет цели или не будет отменен
-            while (Mathf.Abs(camTransform.localPosition.y - targetY) > 0.001f)
+            float targetHeight = endingCrouch ? (_bodySize + _headSize) : (_bodySize + _headSize) * _crouchToStandRatio;
+            float targetCenterY = endingCrouch ? 0f : -0.5f * (_bodySize + _headSize) * _crouchToStandRatio;
+
+            while (Mathf.Abs(_controller.height - targetHeight) > 0.001f)
             {
-                if (!endingCrouch)
+                if (endingCrouch)
                 {
-                    float newY = Mathf.SmoothDamp(camTransform.localPosition.y, targetY,
-                        ref currentVelocity, _crouchSmoothTime);
-
-                    camTransform.localPosition =
-                        new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
-                    _isInDuckPosition = true;
-                    _controller.height = (_bodySize + _headSize) * _crouchToStandRatio;
-                    _controller.center = new Vector3(0, -0.5f* (_bodySize + _headSize) * _crouchToStandRatio,0);
-                }
-                else
-                {
-                    RaycastHit hit;
-                    Vector3 pointToActivate = transform.position;
-                    if (!Physics.SphereCast(pointToActivate, _headSize / 2f, Vector3.up, out hit, 1,
-                            LayerMask.GetMask("Environment")))
+                    if (Physics.SphereCast(transform.position, _headSize / 2f, Vector3.up, out _, 1, LayerMask.GetMask("Environment")))
                     {
-                        float newY = Mathf.SmoothDamp(camTransform.localPosition.y, targetY,
-                            ref currentVelocity, _crouchSmoothTime);
-
-                        camTransform.localPosition =
-                            new Vector3(camTransform.localPosition.x, newY, camTransform.localPosition.z);
-                        _isInDuckPosition = false;
-                        _controller.height = _bodySize + _headSize;
-                        _controller.center = Vector3.zero;
-                        _selectedSpeed = _walkSpeed;
-                        isCrouching = false;
+                        _isInDuckPosition = true;
+                        isCrouching = true;
+                        _selectedSpeed = _crouchSpeed;
+                        return;
                     }
                 }
 
-                // await UniTask.Yield делает паузу до следующего кадра, не блокиру€ поток
+                _controller.height = Mathf.SmoothDamp(_controller.height, targetHeight, ref currentVelocityHeight, _crouchSmoothTime);
+                float newCenterY = Mathf.SmoothDamp(_controller.center.y, targetCenterY, ref currentVelocityCenter, _crouchSmoothTime);
+                _controller.center = new Vector3(0, newCenterY, 0);
+
+                if (_playerCamera._lookType == LookType.FPP)
+                {
+                    float newCamY = Mathf.SmoothDamp(_camera.transform.localPosition.y, targetCamY, ref currentVelocityCam, _crouchSmoothTime);
+                    _camera.transform.localPosition = new Vector3(_camera.transform.localPosition.x, newCamY, _camera.transform.localPosition.z);
+                }
+
+                _isInDuckPosition = !endingCrouch;
+                isCrouching = !endingCrouch;
+                _selectedSpeed = endingCrouch ? _walkSpeed : _crouchSpeed;
+
                 await UniTask.Yield(PlayerLoopTiming.Update, ct);
+            }
+
+            _controller.height = targetHeight;
+            _controller.center = new Vector3(0, targetCenterY, 0);
+            if (_playerCamera._lookType == LookType.FPP)
+            {
+                _camera.transform.localPosition = new Vector3(_camera.transform.localPosition.x, targetCamY, _camera.transform.localPosition.z);
             }
         }
 

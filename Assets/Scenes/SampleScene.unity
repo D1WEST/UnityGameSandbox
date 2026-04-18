@@ -294,8 +294,18 @@ MonoBehaviour:
   _sensetivity: 1
   _lookSmoothTime: 0.01
   _fppOffset: {x: 0, y: 0.592, z: 0}
-  _ttpOffset: {x: -5, y: 2, z: 0}
-  _ttpRotation: {x: 20, y: 90, z: 0}
+  _ttpOffsetDir: {x: -1, y: 0.5, z: 0}
+  _ttpRotation: {x: 30, y: 90, z: 0}
+  _followSmoothTime: 0.1
+  _minZoom: 2
+  _maxZoom: 15
+  _zoomSpeed: 2
+  _currentZoom: 7
+  _enableCollision: 0
+  _collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _cameraRadius: 0.3
   _lookType: 1
 --- !u!1 &330585543
 GameObject:

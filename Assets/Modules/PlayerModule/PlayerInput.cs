@@ -1,6 +1,8 @@
 namespace Assets.Modules.PlayerModule
 {
+    using Unity.VisualScripting;
     using UnityEngine;
+    using UnityEngine.InputSystem;
 
     [RequireComponent(typeof(PlayerLocomotion))]
     public class PlayerInput : MonoBehaviour
@@ -26,6 +28,7 @@ namespace Assets.Modules.PlayerModule
             _playerInputActions.PlayerMovementActions.Sprint.performed += _playerLocomotion.DoSprint;
             _playerInputActions.PlayerMovementActions.Sprint.canceled += _playerLocomotion.DoSprint;
             _playerInputActions.PlayerCameraActions.ChangeView.started += _playerCamera.TriggerViewTypeChange;
+            _playerInputActions.PlayerCameraActions.ChangeLookDistance.performed += OnScroll;
         }
 
         /// <summary>
@@ -41,6 +44,7 @@ namespace Assets.Modules.PlayerModule
             _playerInputActions.PlayerMovementActions.Sprint.performed -= _playerLocomotion.DoSprint;
             _playerInputActions.PlayerMovementActions.Sprint.canceled -= _playerLocomotion.DoSprint;
             _playerInputActions.PlayerCameraActions.ChangeView.started -= _playerCamera.TriggerViewTypeChange;
+            _playerInputActions.PlayerCameraActions.ChangeLookDistance.performed -= OnScroll;
         }
 
         private void Update()
@@ -60,6 +64,12 @@ namespace Assets.Modules.PlayerModule
             { 
                 _playerInputActions = new PlayerInputActions();
             }
+        }
+
+        private void OnScroll(InputAction.CallbackContext context)
+        {
+            float scrollValue = context.ReadValue<float>();
+            _playerCamera.Zoom(scrollValue);
         }
     }
 }

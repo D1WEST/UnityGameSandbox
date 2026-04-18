@@ -24,8 +24,23 @@ namespace Assets.Modules.PlayerModule
         [SerializeField] private Vector3 _fppOffset = new Vector3(0, 0.592f, 0);
 
         [Header("TTP Settings")]
-        [SerializeField] private Vector3 _ttpOffset = new Vector3(0f, 10f, -5f); // Настрой под себя (Высота и отдаление)
-        [SerializeField] private Vector3 _ttpRotation = new Vector3(60f, 0f, 0); // Смотрит вниз под углом
+        [SerializeField] private Vector3 _ttpOffsetDir = new Vector3(-1f, 0.5f, 0f);
+        [SerializeField] private Vector3 _ttpRotation = new Vector3(30f, 90f, 0);
+
+        [Header("TTP Smooth Follow")]
+        [SerializeField] private float _followSmoothTime = 0.1f;
+        private Vector3 _cameraVelocity;
+
+        [Header("TTP Zoom")]
+        [SerializeField] private float _minZoom = 1f;
+        [SerializeField] private float _maxZoom = 15f;
+        [SerializeField] private float _zoomSpeed = 2f;
+        [SerializeField] private float _currentZoom = 7f;
+
+        [Header("TTP Collision")]
+        [SerializeField] private bool _enableCollision = true;
+        [SerializeField] private LayerMask _collisionMask;
+        [SerializeField] private float _cameraRadius = 0.3f;
 
         [Header("Look type")]
         [SerializeField] public LookType _lookType = LookType.FPP;
@@ -66,9 +81,55 @@ namespace Assets.Modules.PlayerModule
         {
             if (_lookType == LookType.TTP)
             {
-                // Камера просто висит со смещением от глобальной позиции игрока
-                _camera.transform.position = transform.position + _ttpOffset;
+                HandleTTPCamera();
             }
+        }
+        public void Zoom(float scrollValue)
+        {
+            if (_lookType != LookType.TTP) return;
+            float scrollSign = Mathf.Sign(scrollValue);
+            if (Mathf.Abs(scrollValue) > 0.01f)
+            {
+                _currentZoom -= scrollSign * _zoomSpeed;
+                _currentZoom = Mathf.Clamp(_currentZoom, _minZoom, _maxZoom);
+            }
+        }
+
+        /// <summary>
+        /// Handles zoom and collision actions.
+        /// </summary>
+        private CharacterController _cc;
+
+        private void Start()
+        {
+            _cc = GetComponent<CharacterController>();
+        }
+
+        private void HandleTTPCamera()
+        {
+            Vector3 desiredOffset = _ttpOffsetDir * _currentZoom;
+
+            float focusHeight = _cc != null ? _cc.height * 0.8f : 1.5f;
+            Vector3 playerFocusPoint = transform.position + Vector3.up * focusHeight;
+
+            Vector3 targetCameraPosition = playerFocusPoint + desiredOffset;
+
+            if (_enableCollision)
+            {
+                Vector3 direction = targetCameraPosition - playerFocusPoint;
+                float distance = direction.magnitude;
+                if (Physics.SphereCast(playerFocusPoint, _cameraRadius, direction.normalized, out RaycastHit hit, distance, _collisionMask))
+                {
+                    targetCameraPosition = playerFocusPoint + direction.normalized * hit.distance;
+                }
+            }
+
+            _camera.transform.position = Vector3.SmoothDamp(
+                _camera.transform.position,
+                targetCameraPosition,
+                ref _cameraVelocity,
+                _followSmoothTime
+            );
         }
 
         private void SetLookDefaults(LookType lookType)
@@ -102,6 +163,9 @@ namespace Assets.Modules.PlayerModule
             }
         }
 
+        /// <summary>
+        /// Changes gameobject level.
+        /// </summary>
         private void SetLayerRecursively(GameObject obj, int newLayer)
         {
             foreach (Transform child in obj.GetComponentsInChildren<Transform>(true))
@@ -148,12 +212,11 @@ namespace Assets.Modules.PlayerModule
         {
             if (MovementVector.sqrMagnitude < 0.01f)
                 return;
+
             Vector2 resultMovementVector = new Vector3(MovementVector.y, -MovementVector.x);
 
-            // Вычисляем угол поворота на основе WASD (Вектор движения)
             float targetAngle = Mathf.Atan2(resultMovementVector.x, resultMovementVector.y) * Mathf.Rad2Deg;
 
-            // Плавно поворачиваем персонажа в сторону движения
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref _turnSmoothVelocity, 0.1f);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
         }
