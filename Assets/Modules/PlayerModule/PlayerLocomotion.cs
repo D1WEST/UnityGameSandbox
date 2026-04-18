@@ -61,7 +61,7 @@ namespace Assets.Modules.PlayerModule
             if (_camera == null) _camera = GetComponent<Camera>();
             if (_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimationService>();
             if (_playerCamera == null) _playerCamera = GetComponent<PlayerCameraService>();
-            _playerCamera.Instantiate();
+            _playerCamera.Initialize();
         }
 
         private void Update()
@@ -74,7 +74,7 @@ namespace Assets.Modules.PlayerModule
         /// Updates camera y position smoothly.
         /// </summary>
         /// <param name="endingCrouch">Is crouch ending?</param>
-        /// <param name="targetY">Target position.</param>
+        /// <param name="targetCamY">Target position.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns></returns>
         private async UniTask SmoothCameraCrouch(bool endingCrouch, float targetCamY, CancellationToken ct)

@@ -3,65 +3,37 @@ namespace Assets.Modules.PlayerModule
     using UnityEngine;
     public class PlayerAnimationService : MonoBehaviour
     {
-        public Animator _animator;
+        [SerializeField] private Animator _animator;
 
-        int _horizontal;
-        int _vertical;
-        int _modifier; 
+        private static readonly int HorizontalHash = Animator.StringToHash("Horizontal");
+        private static readonly int VerticalHash = Animator.StringToHash("Vertical");
+        private static readonly int IsDuckingHash = Animator.StringToHash("isDucking");
+        private static readonly int IsGroundedHash = Animator.StringToHash("isGrounded");
+        private static readonly int IsInteractingHash = Animator.StringToHash("isInteracting");
 
-        private void Start()
+        public void UpdateAnimatorValues(float horizontalMovement, float verticalMovement, bool isSprinting, bool isDucking, bool isGrounded)
         {
-            _horizontal = Animator.StringToHash("Horizontal");
-            _vertical = Animator.StringToHash("Vertical");
+            float modifier = isSprinting ? 2f : 1f;
+
+            _animator.SetFloat(HorizontalHash, RoundValue(horizontalMovement, modifier), 0.1f, Time.deltaTime);
+            _animator.SetFloat(VerticalHash, RoundValue(verticalMovement, modifier), 0.1f, Time.deltaTime);
+            _animator.SetBool(IsDuckingHash, isDucking);
+            _animator.SetBool(IsGroundedHash, isGrounded);
         }
 
-        public void UpdateAnimatorValues(float horizontalMovement, float verticalMovement, bool isSprinting,
-            bool isDucking, bool isGrounded)
+        public void PlayTargetAnimation(string targetAnimation, bool isInteracting)
         {
-            if (isSprinting)
-            {
-                _modifier = 2;
-            }
-            else
-            {
-                _modifier = 1;
-            }
-
-            _animator.SetFloat(_horizontal, RoundValue(horizontalMovement, _modifier), 0.1f, Time.deltaTime);
-            _animator.SetFloat(_vertical, RoundValue(verticalMovement, _modifier), 0.1f, Time.deltaTime);
-            _animator.SetBool("isDucking", isDucking);
-            _animator.SetBool("isGrounded", isGrounded);
-        }
-
-        public void PlayTargetAnimation(string targetAnimation, bool isInterracting)
-        {
-            _animator.SetBool("isInterracting", isInterracting);
+            _animator.SetBool(IsInteractingHash, isInteracting);
             _animator.CrossFade(targetAnimation, 0.2f);
         }
 
         private float RoundValue(float value, float modifier)
         {
-            float result;
-            if (value > 0.05f && value < 0.55f)
-            {
-                result = 0.5f;
-            }
-            else if (value >= 0.55f)
-            {
-                result = 1f;
-            }
-            else if (value < -0.05f && value > -0.55f)
-            {
-                result = -0.5f;
-            }
-            else if (value <= -0.55f)
-            {
-                result = -1f;
-            }
-            else
-            {
-                result = 0;
-            }
+            float result = 0f;
+            if (value > 0.05f && value < 0.55f) result = 0.5f;
+            else if (value >= 0.55f) result = 1f;
+            else if (value < -0.05f && value > -0.55f) result = -0.5f;
+            else if (value <= -0.55f) result = -1f;
 
             return result * modifier;
         }

@@ -60,12 +60,11 @@ namespace Assets.Modules.PlayerModule
         /// <param name="obj">Callback.</param>
         public void TriggerViewTypeChange(InputAction.CallbackContext obj)
         {
-            Debug.Log($"change{_lookType}");
             _lookType = _lookType == LookType.FPP ? LookType.TTP : LookType.FPP;
-            Instantiate();
+            Initialize();
         }
 
-        public void Instantiate()
+        public void Initialize()
         {
             ChangeLookPerspective(_lookType);
             SetLookDefaults(_lookType);
@@ -213,7 +212,7 @@ namespace Assets.Modules.PlayerModule
             if (MovementVector.sqrMagnitude < 0.01f)
                 return;
 
-            Vector2 resultMovementVector = new Vector3(MovementVector.y, -MovementVector.x);
+            Vector2 resultMovementVector = new Vector2(MovementVector.y, -MovementVector.x);
 
             float targetAngle = Mathf.Atan2(resultMovementVector.x, resultMovementVector.y) * Mathf.Rad2Deg;
 
