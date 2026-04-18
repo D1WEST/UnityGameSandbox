@@ -1,6 +1,7 @@
 namespace Assets.Modules.PlayerModule
 {
     using Cysharp.Threading.Tasks;
+    using System;
     using System.Threading;
     using UnityEngine;
     using UnityEngine.InputSystem;
@@ -49,6 +50,18 @@ namespace Assets.Modules.PlayerModule
 
         [SerializeField] private PlayerCameraService _playerCamera;
 
+        [SerializeField] private PlayerHUD _hud;
+
+        [Header("Stamina Settings")]
+        [SerializeField] private float _maxStamina = 100f;
+        [SerializeField] private float _sprintDepletionRate = 16f;
+        [SerializeField] private float _regenRate = 15f;
+        [SerializeField] private float _regenDelay = 0.5f;
+
+        private float _currentStamina;
+        private bool _isSprinting = false;
+        private CancellationTokenSource _staminaUpdateCTS;
+
         private void Start()
         {
             BuildCharacter();
@@ -62,12 +75,190 @@ namespace Assets.Modules.PlayerModule
             if (_playerAnimation == null) _playerAnimation = GetComponent<PlayerAnimationService>();
             if (_playerCamera == null) _playerCamera = GetComponent<PlayerCameraService>();
             _playerCamera.Initialize();
+            InitializeStamina();
         }
 
         private void Update()
         {
             _playerCamera.Look(_playerCamera.SelectOperatingVector(LookVectorDelta, MovementVector));
             Move(_playerCamera._lookType);
+        }
+
+        /// <summary>
+        /// Jump action.
+        /// </summary>
+        /// <param name="obj">Callback.</param>
+        public void DoJump(InputAction.CallbackContext obj)
+        {
+            if (_controller.isGrounded && _currentStamina >= 15f)
+            {
+                _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
+                ConsumeStaminaInstant(15f);
+            }
+        }
+
+        /// <summary>
+        /// Crouch action.
+        /// </summary>
+        /// <param name="obj">Callback.</param>
+        public void DoCrouch(InputAction.CallbackContext obj)
+        {
+            isCrouching = true;
+            _selectedSpeed = _crouchSpeed;
+            TriggerCrouchAnimation(false, (-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio));
+        }
+
+        /// <summary>
+        /// Crouch stop action.
+        /// </summary>
+        /// <param name="obj">Callback.</param>
+        public void StopCrouch(InputAction.CallbackContext obj)
+        {
+            TriggerCrouchAnimation(true, (-0.5f * _bodySize) + (_bodySize - (_headSize / 2)));
+        }
+
+        /// <summary>
+        /// Sprint action.
+        /// </summary>
+        /// <param name="obj">Callback.</param>
+        public void DoSprint(InputAction.CallbackContext obj)
+        {
+            if (isCrouching) return;
+
+            if (obj.performed && _currentStamina > 5f)
+            {
+                _isSprinting = true;
+                _selectedSpeed = _runSpeed;
+            }
+            else if (obj.canceled)
+            {
+                _isSprinting = false;
+                _selectedSpeed = _walkSpeed;
+            }
+
+            // Запускаем асинхронную логику стамины (бег + реген)
+            StartStaminaLogicTask().Forget();
+        }
+
+        public void StopSprint()
+        {
+            _isSprinting = false;
+            _selectedSpeed = _walkSpeed;
+        }
+
+        /// <summary>
+        /// Move action.
+        /// </summary>
+        public void Move(LookType lookType)
+        {
+            if (_controller.isGrounded && _velocity.y < 0)
+            {
+                _velocity.y = -2f;
+            }
+
+            Vector3 inputDirection = SelectMovementInputVector(lookType);
+            if (inputDirection.magnitude > 1f)
+            {
+                inputDirection.Normalize();
+            }
+
+            Vector3 targetVelocity = inputDirection * _selectedSpeed;
+            float speedChangeRate = MovementVector.magnitude > 0.1f ? _acceleration : _deceleration;
+
+            if (!_controller.isGrounded)
+            {
+                speedChangeRate *= _airControlMultiplier;
+            }
+            _currentHorizontalVelocity = Vector3.Lerp(_currentHorizontalVelocity, targetVelocity, speedChangeRate * Time.deltaTime);
+
+            _velocity.y += _gravity * Time.deltaTime;
+            Vector3 finalVelocity = _currentHorizontalVelocity + new Vector3(0, _velocity.y, 0);
+            _controller.Move(finalVelocity * Time.deltaTime);
+            SelectUpdateAnimatorValues(_playerCamera._lookType);
+        }
+
+        /// <summary>
+        /// Метод для разового забора стамины (например, для прыжка).
+        /// </summary>
+        public void ConsumeStaminaInstant(float amount)
+        {
+            _currentStamina = Mathf.Clamp(_currentStamina - amount, 0, _maxStamina);
+            UpdateHUD();
+
+            // Если мы не бежим, перезапускаем цикл регенерации
+            if (!_isSprinting)
+            {
+                StartStaminaLogicTask().Forget();
+            }
+        }
+
+        private void InitializeStamina()
+        {
+            _currentStamina = _maxStamina;
+            if (_hud == null) _hud = FindObjectOfType<PlayerHUD>();
+        }
+
+        /// <summary>
+        /// Основной цикл обработки стамины.
+        /// </summary>
+        private async UniTaskVoid StartStaminaLogicTask()
+        {
+            // Отменяем предыдущую задачу, если она была
+            _staminaUpdateCTS?.Cancel();
+            _staminaUpdateCTS = new CancellationTokenSource();
+            CancellationToken token = _staminaUpdateCTS.Token;
+
+            try
+            {
+                float lastActionTime = Time.time;
+
+                while (true)
+                {
+                    if (_isSprinting)
+                    {
+                        // Трата стамины при беге
+                        _currentStamina -= _sprintDepletionRate * Time.deltaTime;
+
+                        if (_currentStamina <= 0)
+                        {
+                            _currentStamina = 0;
+                            StopSprint(); // Принудительно останавливаем бег
+                        }
+                        lastActionTime = Time.time;
+                    }
+                    else if (_currentStamina < _maxStamina)
+                    {
+                        // Логика регенерации с задержкой
+                        if (Time.time > lastActionTime + _regenDelay)
+                        {
+                            _currentStamina += _regenRate * Time.deltaTime;
+                            _currentStamina = Mathf.Clamp(_currentStamina, 0, _maxStamina);
+                        }
+                    }
+                    else
+                    {
+                        // Стамина полная и мы не бежим - выходим из цикла для экономии ресурсов
+                        _currentStamina = _maxStamina;
+                        UpdateHUD();
+                        break;
+                    }
+
+                    UpdateHUD();
+                    await UniTask.Yield(PlayerLoopTiming.Update, token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Задача была отменена - это нормально
+            }
+        }
+
+        private void UpdateHUD()
+        {
+            if (_hud != null)
+            {
+                _hud.stamina = _currentStamina; // Передаем значение в ваш HUD
+            }
         }
 
         /// <summary>
@@ -137,81 +328,7 @@ namespace Assets.Modules.PlayerModule
             SmoothCameraCrouch(endingCrouch, targetY, _crouchCTS.Token).Forget();
         }
 
-        /// <summary>
-        /// Jump action.
-        /// </summary>
-        /// <param name="obj">Callback.</param>
-        public void DoJump(InputAction.CallbackContext obj)
-        {
-            if (_controller.isGrounded && !isCrouching)
-            {
-                _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
-            }
-        }
-
-        /// <summary>
-        /// Crouch action.
-        /// </summary>
-        /// <param name="obj">Callback.</param>
-        public void DoCrouch(InputAction.CallbackContext obj)
-        {
-            isCrouching = true;
-            _selectedSpeed = _crouchSpeed;
-            TriggerCrouchAnimation(false,(-0.5f * _bodySize) + ((_bodySize - _headSize / 2) * _crouchToStandRatio));
-        }
-
-        /// <summary>
-        /// Crouch stop action.
-        /// </summary>
-        /// <param name="obj">Callback.</param>
-        public void StopCrouch(InputAction.CallbackContext obj)
-        {
-            TriggerCrouchAnimation(true, (-0.5f * _bodySize) + (_bodySize - (_headSize / 2)));
-        }
-
-        /// <summary>
-        /// Sprint action.
-        /// </summary>
-        /// <param name="obj">Callback.</param>
-        public void DoSprint(InputAction.CallbackContext obj)
-        {
-            if (!isCrouching)
-            {
-                if (obj.performed) _selectedSpeed = _runSpeed;
-                else if (obj.canceled) _selectedSpeed = _walkSpeed;
-            }
-        }
-
-        /// <summary>
-        /// Move action.
-        /// </summary>
-        public void Move(LookType lookType)
-        {
-            if (_controller.isGrounded && _velocity.y < 0)
-            {
-                _velocity.y = -2f;
-            }
-
-            Vector3 inputDirection = SelectMovementInputVector(lookType);
-            if (inputDirection.magnitude > 1f)
-            {
-                inputDirection.Normalize();
-            }
-
-            Vector3 targetVelocity = inputDirection * _selectedSpeed;
-            float speedChangeRate = MovementVector.magnitude > 0.1f ? _acceleration : _deceleration;
-
-            if (!_controller.isGrounded)
-            {
-                speedChangeRate *= _airControlMultiplier;
-            }
-            _currentHorizontalVelocity = Vector3.Lerp(_currentHorizontalVelocity, targetVelocity, speedChangeRate * Time.deltaTime);
-
-            _velocity.y += _gravity * Time.deltaTime;
-            Vector3 finalVelocity = _currentHorizontalVelocity + new Vector3(0, _velocity.y, 0);
-            _controller.Move(finalVelocity * Time.deltaTime);
-            SelectUpdateAnimatorValues(_playerCamera._lookType);
-        }
+        
 
         /// <summary>
         /// Выбирает вектор 

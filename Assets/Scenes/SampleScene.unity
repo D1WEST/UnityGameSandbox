@@ -310,13 +310,18 @@ MonoBehaviour:
   _camera: {fileID: 330585545}
   _acceleration: 10
   _deceleration: 10
-  _airControlMultiplier: 0.2
+  _airControlMultiplier: 0.028
   _headSize: 0.25
   _bodySize: 1.75
   _crouchToStandRatio: 0.4
   _crouchSmoothTime: 0.05
   _playerAnimation: {fileID: 208961347}
   _playerCamera: {fileID: 208961349}
+  _hud: {fileID: 1798296681}
+  _maxStamina: 100
+  _sprintDepletionRate: 16
+  _regenRate: 15
+  _regenDelay: 0.5
 --- !u!143 &208961345
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1505,11 +1510,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b22f475e1c5d19d448c47b20a4fbee0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHUD
-  maxHP: 100
-  maxStamina: 100
+  hp: 100
+  stamina: 100
   segmentsCount: 10
-  currentHP: 100
-  currentStamina: 100
+  shakeIntensity: 5
 --- !u!1 &2109127855
 GameObject:
   m_ObjectHideFlags: 0
