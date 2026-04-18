@@ -1,0 +1,43 @@
+.hud-root {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+}
+
+.stat-container {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(20, 20, 20, 0.7);
+    padding: 5px 15px;
+    margin-bottom: 10px;
+    rotate: -5deg;
+    border-left-width: 5px;
+}
+
+.hp-bar { border-left-color: #4CAF50; }
+.stamina-bar { border-left-color: #FF69B4; margin-left: 10px; }
+
+.stat-text {
+    color: white; /* Цифры теперь всегда белые */
+    font-size: 28px;
+    -unity-font-style: bold;
+    width: 60px;
+    margin-right: 10px;
+}
+
+.segments-row {
+    flex-direction: row;
+}
+
+/* Настройки самих сегментов */
+.segment {
+    width: 16px;
+    height: 35px;
+    margin-right: 4px;
+    background-color: white; /* Цвет будет перекрашиваться скриптом */
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    /* Плавный переход для цвета */
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
