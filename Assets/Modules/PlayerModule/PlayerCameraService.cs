@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -45,14 +46,35 @@ namespace Assets.Modules.PlayerModule
         [Header("Look type")]
         [SerializeField] public LookType _lookType = LookType.FPP;
 
+        [Header("URP Obstruction Fading")]
+        [SerializeField] private bool _enableFading = true;
+        [SerializeField] private LayerMask _fadingMask;
+        [SerializeField] private float _fadedAlpha = 0.2f;
+        [SerializeField] private float _fadeSpeed = 5f;
+        [Tooltip("Поместите сюда URP материал с Surface Type = Transparent")]
+        [SerializeField] private Material _transparentMaterialTemplate;
+
+        // Кэшируем ID свойств URP для скорости
+        private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
+        private static readonly int BaseMapID = Shader.PropertyToID("_BaseMap");
+
+        private readonly Dictionary<Renderer, FadedObject> _fadedObjects = new Dictionary<Renderer, FadedObject>();
+        private readonly HashSet<Renderer> _hitsThisFrame = new HashSet<Renderer>();
+
+
         private Action<Vector2> _lookAction;
         private float _xRotation = 0f;
         private float _yRotation = 0f;
         private Vector2 _currentMouseDelta;
         private Vector2 _currentMouseDeltaVelocity;
-
-        // Переменная для плавного поворота персонажа в TTP
         private float _turnSmoothVelocity;
+
+        private class FadedObject
+        {
+            public float CurrentAlpha = 1f;
+            public Material[] OriginalMaterials; // Оригинальные непрозрачные материалы
+            public Material[] TemporaryTransparentMaterials; // Временные клоны для прозрачности
+        }
 
         /// <summary>
         /// Changes view perspective.
@@ -81,8 +103,14 @@ namespace Assets.Modules.PlayerModule
             if (_lookType == LookType.TTP)
             {
                 HandleTTPCamera();
+
+                if (_enableFading)
+                {
+                    HandleURPObstructionFading();
+                }
             }
         }
+
         public void Zoom(float scrollValue)
         {
             if (_lookType != LookType.TTP) return;
@@ -102,6 +130,109 @@ namespace Assets.Modules.PlayerModule
         private void Start()
         {
             _cc = GetComponent<CharacterController>();
+
+            if (_enableFading && _transparentMaterialTemplate == null)
+            {
+                Debug.LogError("[PlayerCameraService] Не назначен Transparent Material Template! Fading отключен.");
+                _enableFading = false;
+            }
+        }
+
+        private void HandleURPObstructionFading()
+        {
+            _hitsThisFrame.Clear();
+
+            float focusHeight = _cc != null ? _cc.height * 0.8f : 1.5f;
+            Vector3 playerFocusPoint = transform.position + Vector3.up * focusHeight;
+            Vector3 cameraPos = _camera.transform.position;
+
+            Vector3 direction = playerFocusPoint - cameraPos;
+            float distance = direction.magnitude;
+
+            // Используем RaycastAll, чтобы пробить все препятствия до игрока
+            RaycastHit[] hits = Physics.RaycastAll(cameraPos, direction.normalized, distance, _fadingMask);
+
+            foreach (RaycastHit hit in hits)
+            {
+                Renderer hitRenderer = hit.collider.GetComponent<Renderer>();
+                if (hitRenderer != null)
+                {
+                    _hitsThisFrame.Add(hitRenderer);
+
+                    // Если объект попал под луч впервые
+                    if (!_fadedObjects.ContainsKey(hitRenderer))
+                    {
+                        Material[] originalMats = hitRenderer.sharedMaterials;
+                        Material[] tempMats = new Material[originalMats.Length];
+
+                        // Создаем временные прозрачные материалы, копируя текстуры из оригинальных
+                        for (int i = 0; i < originalMats.Length; i++)
+                        {
+                            tempMats[i] = new Material(_transparentMaterialTemplate);
+
+                            // Копируем базовую текстуру и цвет (URP стандарты)
+                            if (originalMats[i].HasProperty(BaseMapID))
+                                tempMats[i].SetTexture(BaseMapID, originalMats[i].GetTexture(BaseMapID));
+
+                            if (originalMats[i].HasProperty(BaseColorID))
+                                tempMats[i].SetColor(BaseColorID, originalMats[i].GetColor(BaseColorID));
+                        }
+
+                        // Применяем временные прозрачные материалы на объект
+                        hitRenderer.materials = tempMats;
+
+                        _fadedObjects.Add(hitRenderer, new FadedObject
+                        {
+                            OriginalMaterials = originalMats,
+                            TemporaryTransparentMaterials = tempMats,
+                            CurrentAlpha = 1f
+                        });
+                    }
+                }
+            }
+
+            List<Renderer> objectsToRemove = new List<Renderer>();
+
+            foreach (var kvp in _fadedObjects)
+            {
+                Renderer rnd = kvp.Key;
+                FadedObject fadedObj = kvp.Value;
+
+                // Если луч всё ещё бьет в объект - делаем прозрачным, если нет - возвращаем к 1
+                float targetAlpha = _hitsThisFrame.Contains(rnd) ? _fadedAlpha : 1f;
+                fadedObj.CurrentAlpha = Mathf.MoveTowards(fadedObj.CurrentAlpha, targetAlpha, _fadeSpeed * Time.deltaTime);
+
+                // Применяем альфу
+                foreach (Material tempMat in fadedObj.TemporaryTransparentMaterials)
+                {
+                    if (tempMat.HasProperty(BaseColorID))
+                    {
+                        Color c = tempMat.GetColor(BaseColorID);
+                        c.a = fadedObj.CurrentAlpha;
+                        tempMat.SetColor(BaseColorID, c);
+                    }
+                }
+
+                // Если полностью вернул видимость
+                if (Mathf.Approximately(fadedObj.CurrentAlpha, 1f) && targetAlpha == 1f)
+                {
+                    // Возвращаем оригинальные (дешевые) материалы
+                    rnd.sharedMaterials = fadedObj.OriginalMaterials;
+
+                    // Уничтожаем клоны для предотвращения утечки памяти
+                    foreach (Material mat in fadedObj.TemporaryTransparentMaterials)
+                    {
+                        Destroy(mat);
+                    }
+
+                    objectsToRemove.Add(rnd);
+                }
+            }
+
+            foreach (Renderer rnd in objectsToRemove)
+            {
+                _fadedObjects.Remove(rnd);
+            }
         }
 
         private void HandleTTPCamera()
