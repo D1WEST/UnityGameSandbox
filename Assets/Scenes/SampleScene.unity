@@ -172,6 +172,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Modules.PlayerModule.PlayerInput
   _playerLocomotion: {fileID: 208961344}
+  _playerCamera: {fileID: 208961349}
 --- !u!114 &208961344
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Assets.Modules.PlayerModule
 {
@@ -37,6 +38,17 @@ namespace Assets.Modules.PlayerModule
 
         // Переменная для плавного поворота персонажа в TTP
         private float _turnSmoothVelocity;
+
+        /// <summary>
+        /// Changes view perspective.
+        /// </summary>
+        /// <param name="obj">Callback.</param>
+        public void TriggerViewTypeChange(InputAction.CallbackContext obj)
+        {
+            Debug.Log($"change{_lookType}");
+            _lookType = _lookType == LookType.FPP ? LookType.TTP : LookType.FPP;
+            Instantiate();
+        }
 
         public void Instantiate()
         {

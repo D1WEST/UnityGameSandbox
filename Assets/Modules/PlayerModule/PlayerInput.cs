@@ -7,6 +7,7 @@ namespace Assets.Modules.PlayerModule
     {
         [SerializeField] private PlayerInputActions _playerInputActions;
         [SerializeField] private PlayerLocomotion _playerLocomotion;
+        [SerializeField] private PlayerCameraService _playerCamera;
 
         /// <summary>
         /// On input interaction enabled.
@@ -18,11 +19,13 @@ namespace Assets.Modules.PlayerModule
                 _playerInputActions = new();
             }
             _playerInputActions.PlayerMovementActions.Enable();
+            _playerInputActions.PlayerCameraActions.Enable();
             _playerInputActions.PlayerMovementActions.Jump.performed += _playerLocomotion.DoJump;
             _playerInputActions.PlayerMovementActions.Crouch.performed += _playerLocomotion.DoCrouch;
             _playerInputActions.PlayerMovementActions.Crouch.canceled += _playerLocomotion.StopCrouch;
             _playerInputActions.PlayerMovementActions.Sprint.performed += _playerLocomotion.DoSprint;
             _playerInputActions.PlayerMovementActions.Sprint.canceled += _playerLocomotion.DoSprint;
+            _playerInputActions.PlayerCameraActions.ChangeView.started += _playerCamera.TriggerViewTypeChange;
         }
 
         /// <summary>
@@ -31,11 +34,13 @@ namespace Assets.Modules.PlayerModule
         private void OnDisable()
         {
             _playerInputActions.PlayerMovementActions.Disable();
+            _playerInputActions.PlayerCameraActions.Disable();
             _playerInputActions.PlayerMovementActions.Jump.performed -= _playerLocomotion.DoJump;
             _playerInputActions.PlayerMovementActions.Crouch.performed -= _playerLocomotion.DoCrouch;
             _playerInputActions.PlayerMovementActions.Crouch.canceled -= _playerLocomotion.StopCrouch;
             _playerInputActions.PlayerMovementActions.Sprint.performed -= _playerLocomotion.DoSprint;
             _playerInputActions.PlayerMovementActions.Sprint.canceled -= _playerLocomotion.DoSprint;
+            _playerInputActions.PlayerCameraActions.ChangeView.started -= _playerCamera.TriggerViewTypeChange;
         }
 
         private void Update()
